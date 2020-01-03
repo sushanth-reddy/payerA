@@ -945,16 +945,16 @@ class PDEX extends Component {
         //     }]
 
         // }
-        var fhir_url = this.state.fhir_url+"/Bundle";
+        var fhir_url = this.state.fhir_url;
         var req_bundle = {
             "resourceType": "Bundle",
             "type": "transaction",
             "entry": [{
                 "resource": this.state.communicationRequest,
                 "request": {
-                    "method": "POST",
-                    // "url": "CommunicationRequest?identifier=" + this.state.communicationRequest.identifier[0].value
-                    "url": "CommunicationRequest/" + this.state.communicationRequest.id
+                    "method": "PUT",
+                    "url": "CommunicationRequest?identifier=" + this.state.communicationRequest.identifier[0].value,
+                    "ifNoneExist": "identifier=" + this.state.communicationRequest.identifier[0].value
                 }
             }]
 
@@ -971,7 +971,7 @@ class PDEX extends Component {
         // }
         // )
         let CommunicationRequest = await fetch(fhir_url, {
-            method: "PUT",
+            method: "POST",
             headers: headers,
             body: JSON.stringify(req_bundle)
         }).then(response => {
