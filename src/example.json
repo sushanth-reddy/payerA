@@ -1,0 +1,17 @@
+{
+    "E1390": "Oxygen concentrator, single delivery port",
+     "E1391": "Oxygen concentrator, dual delivery port",
+     "E0424": "Stationary compressed gaseous oxygen system, rental; includes container, contents, regulator, flowmeter,humidifier, nebulizer, cannula or mask,and tubing",
+     "E0439": "Stationary liquid oxygen system, rental;includes container, contents, regulator,flowmeter, humidifier, nebulizer, cannulaor mask, and tubing",
+     "E1405": "Oxygen and water vapor enriching system with heated delivery",
+     "E1406": "Oxygen and water vapor enriching system without heated delivery",
+     "E0431": "Portable gaseous oxygen system,rental; includes portable container,regulator, flowmeter, humidifier, cannulaor mask, and tubing",
+     "E0434": "Portable liquid oxygen system, rental;includes portable container, supplyreservoir, humidifier, flowmeter, refilladaptor, contents gauge, cannula ormask, and tubing",
+     "E1392": "Portable oxygen concentrator, rental",
+     "E0433": "Portable liquid oxygen system, rental;home liquefier used to fill portable liquid oxygen containers, includes portable containers, regulator, flowmeter,humidifier, cannula or mask and tubing,with or without supply reservoir and contents gauge",
+     "K0738": "Portable gaseous oxygen system,rental; home compressor used to fill portable oxygen cylinders; includes portable containers, regulator, flowmeter,humidifier, cannula or mask, and tubing",
+     "E0441": "Stationary oxygen contents, gaseous,1 month’s supply = 1 unit",
+     "E0442": "Stationary oxygen contents, liquid,1 month’s supply = 1 unit",
+     "E0443": "Portable oxygen contents, gaseous,1 month’s supply = 1 unit",
+     "E0444": "Portable oxygen contents, liquid,1 month’s supply = 1 unit"
+}

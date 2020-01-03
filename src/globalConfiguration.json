@@ -1,0 +1,103 @@
+{
+  "token_url": "https://auth.mettles.com/auth/realms/ProviderCredentials/protocol/openid-connect/token",
+  "realm": "ProviderCredentials",
+  "keycloak_admin_settings":{
+    "baseUrl": "https://auth.mettles.com/auth",
+    "username": "admin",
+    "password": "keycloak123",
+    "grant_type": "password",
+    "client_id": "admin-cli"
+  },
+  "npi": "1932102951",
+    "user_profiles": [
+        {
+          "username": "john",
+          "name": "John",
+          "npi": "1932102951"
+        },
+        {
+          "username": "mary",
+          "name": "Mary",
+          "npi": "1932102952"
+        }
+      ],
+      "crd":{
+        "crd_url":"http://cdex.mettles.com/crd/",
+        "coverage_decision_path": "cds-services/coverage_decision",
+        "coverage_requirement_path": "cds-services/coverage_requirement",
+        "patient_view_path":"cds-services/patient_view"
+      },
+      "current_payer_id": 57,
+      "payerA":{
+        "fhir_url": "http://cdex.mettles.com/other_payerfhir/hapi-fhir-jpaserver/fhir",
+        "client_secret": "b11c46c4-84c5-4138-9460-1824ecc68217",
+        "client_id": "2dfc4e1473a2fcfb7b84e66f34404c38",
+        "grant_type":"client_credentials",
+        "authorizedPayerFhir": true
+      },
+      "payerB":{
+        "fhir_url": "http://cdex.mettles.com/payerfhir/hapi-fhir-jpaserver/fhir",
+        "client_secret": "b11c46c4-84c5-4138-9460-1824ecc68217",
+        "client_id": "2dfc4e1473a2fcfb7b84e66f34404c38",
+        "grant_type":"client_credentials",
+        "authorizedPayerFhir": true
+      },
+      "payer":{
+        "fhir_url": "http://cdex.mettles.com/payerfhir/hapi-fhir-jpaserver/fhir",
+        "client_secret": "b11c46c4-84c5-4138-9460-1824ecc68217",
+        "client_id": "2dfc4e1473a2fcfb7b84e66f34404c38",
+        "grant_type":"client_credentials",
+        "authorizedPayerFhir": true
+      },
+      "provider":{
+        "fhir_url": "http://cdex.mettles.com/ehrfhir/hapi-fhir-jpaserver/fhir",
+        "client_secret": "8e2cbdf6-b680-4e4d-b10b-2b10fb3b065a",
+        "client_id": "64a0acf8e17a2c8734499c813a01fe73",
+        "grant_type":"client_credentials",
+        "authorized_fhir": true
+      },
+      "authorization_service":{
+        "auth_token_url": "https://auth.mettles.com/auth/realms/ProviderCredentials/protocol/openid-connect/token",
+        "token_verification_url": "https://auth.mettles.com/auth/realms/ProviderCredentials/protocol/openid-connect/token/introspect",
+        "token_type": "Bearer",
+        "token_expires_in": 300,
+        "scope": "patient/Patient.read patient/Observation.read",
+        "subject": "cds-service4"
+      },
+      "cds_service":{
+        "vsac_user":"prathyanusha",
+        "vsac_password":"Anusha56",
+        "get_payers":"http://cdex.mettles.com/cds/getPayers",
+        "get_codes":"http://cdex.mettles.com/cds/getCodes"
+      },
+      "operationPayload":{
+        "resourceType": "Parameters",
+        "id": "OPERATIONID",
+        "parameter": [
+          {
+            "name": "measure-report",
+            "resource": {
+                "resourceType": "MeasureReport",
+                "meta": {
+                  "profile": ["http://hl7.org/fhir/us/davinci-deqm/STU3/StructureDefinition/measurereport-deqm"]
+                },
+                "id": "MEASUREREPORTID",
+                "status": "pending",
+                "type": "individual",
+                "measure": "Measure?identifier=MEASUREIDENTIFIER",
+                "subject": {
+                    "reference": "Patient/PATIENTID"
+                },
+                "date": "TIMESTAMP",
+                "period": {
+                    "start": "TIMESTAMP",
+                    "end": "TIMESTAMP"
+                },
+                "reporter": {
+                    "reference": "Organization/ORGANIZATIONID"
+                }
+            }
+          }     
+        ]
+    }
+}
