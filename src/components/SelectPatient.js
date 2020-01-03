@@ -56,7 +56,7 @@ export class SelectPatient extends Component {
 
     async getResources() {
         // var url = this.props.config.payer.fhir_url+'/Patient';
-        let req = JSON.parse(sessionStorage.getItem('requesterPayer'))
+        let req = JSON.parse(sessionStorage.getItem('currentPayer'))
         console.log(req.payer_end_point,'request sessions')
         var url = req.payer_end_point+'/Patient'
         let token;

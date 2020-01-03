@@ -927,23 +927,48 @@ class PDEX extends Component {
         // }
         // var communicationUrl = '';
         // var url = config.payerA.fhir_url + "/CommunicationRequest/" + this.state.communicationRequest.id;
-        var url = config.payerA.fhir_url;
-        var bundle = {
+        // var url = endPointUrl;
+        // var bundle = {
+        //     "resourceType": "Bundle",
+        //     "type": "transaction",
+        //     "entry": [{
+        //         "resource": this.state.communicationRequest,
+        //         "request": {
+        //             "method": "PUT",
+        //             "url": "CommunicationRequest?identifier=" + this.state.communicationRequest.identifier[0].value
+        //         }
+        //     }]
+
+        // }
+        var fhir_url = this.state.fhir_url+"/Bundle";
+        var req_bundle = {
             "resourceType": "Bundle",
             "type": "transaction",
             "entry": [{
                 "resource": this.state.communicationRequest,
                 "request": {
-                    "method": "PUT",
-                    "url": "CommunicationRequest?identifier=" + this.state.communicationRequest.identifier[0].value
+                    "method": "POST",
+                    // "url": "CommunicationRequest?identifier=" + this.state.communicationRequest.identifier[0].value
+                    "url": "CommunicationRequest/" + this.state.communicationRequest.id
                 }
             }]
 
         }
-        let Communication = await fetch(url, {
+
+        // let Communication = await fetch(url, {
+        //     method: "PUT",
+        //     headers: headers,
+        //     body: JSON.stringify(bundle)
+        // }).then(response => {
+        //     return response.json();
+        // }).then((response) => {
+        //     console.log(response, 'yes its working')
+        // }
+        // )
+        let CommunicationRequest = await fetch(fhir_url, {
             method: "PUT",
             headers: headers,
-            body: JSON.stringify(bundle)
+            body: JSON.stringify(req_bundle)
         }).then(response => {
             return response.json();
         }).then((response) => {

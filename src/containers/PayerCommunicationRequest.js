@@ -120,7 +120,8 @@ class CommunicationRequest extends Component {
       senderOrganizationResource: '',
       communicationRequestIdentifier: this.getGUID(),
       payer: '',
-      currentPayer: sessionStorage.getItem('currentPayer') !== undefined ? JSON.parse(sessionStorage.getItem('currentPayer')) : '',
+      // currentPayer: sessionStorage.getItem('currentPayer') !== undefined ? JSON.parse(sessionStorage.getItem('currentPayer')) : '',
+      currentPayer: '',
       requesterCommRequest: '',
       purpose: '',
       note: ''
@@ -268,13 +269,13 @@ class CommunicationRequest extends Component {
       sessionStorage.setItem('redirectTo', "/payerA");
       this.props.history.push("/login");
     }
-    // let payersList = await this.getPayerList()
-    // let payer;
-    // if(payersList !==undefined){
-    //   payer = payersList.find(payer => payer.id === config.current_payer_id);
-    //   this.setState({ currentPayer: payer })
-    //   this.setState({payer_name:payer.payer_name})
-    // }
+    let payersList = await this.getPayerList()
+    let payer;
+    if(payersList !==undefined){
+      payer = payersList.find(payer => payer.id === config.current_payer_id);
+      this.setState({ currentPayer: payer })
+      this.setState({payer_name:payer.payer_name})
+    }
     // console.log(payer, "currentPayer")
     
     // let token = await this.getToken(config.payerA.grant_type, config.payerA.client_id, config.payerA.client_secret);

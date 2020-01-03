@@ -27,7 +27,7 @@
         "coverage_requirement_path": "cds-services/coverage_requirement",
         "patient_view_path":"cds-services/patient_view"
       },
-      "current_payer_id": 57,
+      "current_payer_id": 1,
       "payerA":{
         "fhir_url": "http://cdex.mettles.com/other_payerfhir/hapi-fhir-jpaserver/fhir",
         "client_secret": "b11c46c4-84c5-4138-9460-1824ecc68217",

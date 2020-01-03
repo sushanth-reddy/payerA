@@ -28,7 +28,7 @@ export class SelectPayerWithEndpoint extends Component {
             payers: [],
             payersList: [],
             payerEndpoint: '',
-            payerId:'',
+            payerId: '',
         }
         this.handlePayerTypeChange = this.handlePayerTypeChange.bind(this);
         this.handlePayerChange = this.handlePayerChange.bind(this);
@@ -38,9 +38,17 @@ export class SelectPayerWithEndpoint extends Component {
         try {
             let payersList = await this.getResources();
             this.setState({ payersList });
-            let currentPayer = payersList.find(payer => payer.id === this.state.config.payer_id);
+            let currentPayer = payersList.find(payer => payer.id === config.current_payer_id);
             console.log(currentPayer, "currentPayer")
             sessionStorage.setItem('currentPayer', JSON.stringify(currentPayer))
+            // if (this.state.config !== null) {
+            //     if (this.state.config.hasOwnProperty('payer_id')) {
+            //         console.log(this.state.config, 'config')
+            //         let currentPayer = payersList.find(payer => payer.id === this.state.config.payer_id);
+            //         console.log(currentPayer, "currentPayer")
+            //         sessionStorage.setItem('currentPayer', JSON.stringify(currentPayer))
+            //     }
+            // }
             let payers = this.state.payers;
             let payer_type = this.state.payer_type;
             payersList.map((item) => {
@@ -62,8 +70,8 @@ export class SelectPayerWithEndpoint extends Component {
                 let val = {
                     'name': item.payer_name.replace(/ /g, "_").toLowerCase(),
                     'payer_identifier': item.payer_identifier,
-                    'payer_type':item.payer_type,
-                    'id':item.id,
+                    'payer_type': item.payer_type,
+                    'id': item.id,
                     "payerName": item.payer_name,
                     'payer_end_point': item.payer_end_point
                 }
@@ -110,8 +118,8 @@ export class SelectPayerWithEndpoint extends Component {
                 let val = {
                     'name': item.payer_name.replace(/ /g, "_").toLowerCase(),
                     'payer_identifier': item.payer_identifier,
-                    'payer_type':item.payer_type,
-                    'id':item.id,
+                    'payer_type': item.payer_type,
+                    'id': item.id,
                     "payerName": item.payer_name,
                     'payer_end_point': item.payer_end_point
                 }
@@ -124,7 +132,6 @@ export class SelectPayerWithEndpoint extends Component {
     handlePayerChange = (e, { value }) => {
         this.setState({ payerEndpoint: value.payer_end_point })
         this.setState({ payerId: value.id })
-        console.log(value,'lll')
         this.props.updateCB(this.props.elementName, value)
         this.setState({ currentValue: value })
     }
@@ -145,7 +152,7 @@ export class SelectPayerWithEndpoint extends Component {
         return (
             <div>
                 <div className="form-row">
-                    {this.props.obj.offset && 
+                    {this.props.obj.offset &&
                         <div className="form-group col-md-3 offset-1">
                             <h4 className="title">Payer*</h4>
                         </div>
@@ -155,7 +162,7 @@ export class SelectPayerWithEndpoint extends Component {
                             <h4 className="title"></h4>
                         </div>
                     }
-                    
+
                     <div className="form-group col-md-4">
                         <Dropdown
                             className={blackBorder}

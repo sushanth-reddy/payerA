@@ -27,7 +27,7 @@ export class SelectPayerWithId extends Component {
             payer_type: [],
             payers: [],
             payersList: [],
-            payerId:'',
+            payerId: '',
         }
         this.handlePayerTypeChange = this.handlePayerTypeChange.bind(this);
         this.handlePayerChange = this.handlePayerChange.bind(this);
@@ -36,9 +36,15 @@ export class SelectPayerWithId extends Component {
         try {
             let payersList = await this.getResources();
             this.setState({ payersList });
-            let requesterPayer = payersList.find(payer => payer.id === config.current_payer_id);
-            console.log(requesterPayer, "requesterPayer")
-            sessionStorage.setItem('requesterPayer', JSON.stringify(requesterPayer))
+            if (this.state.config !== null) {
+                if (this.state.hasOwnProperty('payer_id')) {
+                    let currentPayer = payersList.find(payer => payer.id === this.state.config.payer_id);
+                    console.log(currentPayer, "currentPayer")
+                    sessionStorage.setItem('currentPayer', JSON.stringify(currentPayer))
+                }
+
+            }
+
             let payers = this.state.payers;
             let payer_type = this.state.payer_type;
             payersList.map((item) => {
@@ -60,8 +66,8 @@ export class SelectPayerWithId extends Component {
                 let val = {
                     'name': item.payer_name.replace(/ /g, "_").toLowerCase(),
                     'payer_identifier': item.payer_identifier,
-                    'payer_type':item.payer_type,
-                    'id':item.id,
+                    'payer_type': item.payer_type,
+                    'id': item.id,
                     "payerName": item.payer_name,
                     'endpoint': item.payer_end_point
                 }
@@ -108,8 +114,8 @@ export class SelectPayerWithId extends Component {
                 let val = {
                     'name': item.payer_name.replace(/ /g, "_").toLowerCase(),
                     'payer_identifier': item.payer_identifier,
-                    'payer_type':item.payer_type,
-                    'id':item.id,
+                    'payer_type': item.payer_type,
+                    'id': item.id,
                     "payerName": item.payer_name,
                     'endpoint': item.payer_end_point
                 }
@@ -122,7 +128,7 @@ export class SelectPayerWithId extends Component {
     handlePayerChange = (e, { value }) => {
         this.setState({ payerEndpoint: value.endpoint })
         this.setState({ payerId: value.id })
-        console.log(value,'lll')
+        console.log(value, 'lll')
         this.props.updateCB(this.props.elementName, value)
         this.setState({ currentValue: value })
     }
@@ -137,14 +143,14 @@ export class SelectPayerWithId extends Component {
         return (
             <div>
                 <div className="form-row">
-                    
-                        <div className="form-group col-md-3 offset-1">
-                            {/* <h4 className="title"></h4> */}
-                        </div>
-                        
-                    
+
+                    <div className="form-group col-md-3 offset-1">
+                        {/* <h4 className="title"></h4> */}
+                    </div>
+
+
                     <div className="form-group col-md-3">
-                      <span className="title-small">Payer Type</span>
+                        <span className="title-small">Payer Type</span>
                         <Dropdown
                             className={blackBorder}
                             options={this.state.payer_type}
@@ -169,7 +175,7 @@ export class SelectPayerWithId extends Component {
                         />
                     </div>
                 </div>
-                    {/* <div className="form-row">
+                {/* <div className="form-row">
                     <div className="form-group col-md-3 offset-1">
                             <h4 className="title"></h4>
                         </div>

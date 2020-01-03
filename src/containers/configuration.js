@@ -12,12 +12,14 @@ import { SelectPayerWithId } from '../components/SelectPayerWithId.js';
 
 // const NotificationContainer = window.ReactNotifications.NotificationContainer;
 // const NotificationManager = window.ReactNotifications.NotificationManager;
+console.log(sessionStorage.getItem('currentPayer') !== 'undefined' ? JSON.parse(sessionStorage.getItem('config')) : {},'plllllll', sessionStorage.getItem('currentPayer'))
+console.log('plllllll', sessionStorage.getItem('currentPayer'))
 class Configuration extends Component {
     constructor(props) {
         super(props);
         this.state = {
             config: sessionStorage.getItem('config') !== undefined ? JSON.parse(sessionStorage.getItem('config')) : {},
-            requesterPayer: sessionStorage.getItem('requesterPayer') !== undefined ? JSON.parse(sessionStorage.getItem('requesterPayer')) : '',
+            currentPayer: sessionStorage.getItem('currentPayer') !== undefined ? JSON.parse(sessionStorage.getItem('currentPayer')) : {},
             payer: ''
         }
         this.onChangeTokenExpiry = this.onChangeTokenExpiry.bind(this);
@@ -143,7 +145,7 @@ class Configuration extends Component {
         this.setState({ config })
     }
     updateStateElement = (elementName, value) => {
-        // console.log("event----------", value, elementName)
+        console.log("event----------", value, elementName)
         let config = this.state.config;
         config.payer_id = value.id
         this.setState({ [elementName]: value })
@@ -209,8 +211,8 @@ class Configuration extends Component {
                             <div id="logo" className="pull-left">
                                 {/* <h1><a href="#intro" className="scrollto">Beryllium</a></h1> */}
                                 {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
-                                {this.state.requesterPayer !== '' &&
-                                    <h1><a href="#intro" className="scrollto">{this.state.requesterPayer.payer_name}</a></h1>
+                                {this.state.currentPayer !== null &&
+                                    <h1><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                                 }
                             </div>
                             <nav id="nav-menu-container">
