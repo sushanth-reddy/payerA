@@ -21,6 +21,7 @@ import { KEYUTIL } from 'jsrsasign';
 import { createToken } from '../components/Authentication';
 import { connect } from 'react-redux';
 import config from '../globalConfiguration.json';
+import logo from "../Palm_GBA_H.JPG";
 
 
 
@@ -996,11 +997,11 @@ class CommunicationHandler extends Component {
       <React.Fragment>
         <div>
           <header id="inpageheader">
-            <div className="container">
+            <div className="">
 
               <div id="logo" className="pull-left">
                 {this.state.currentPayer!=='' &&
-                  <h1><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                  <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                 }
                 {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
               </div>

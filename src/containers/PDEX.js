@@ -17,6 +17,7 @@ import { faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import config from '../globalConfiguration.json';
 import { ThemeProvider } from 'styled-components';
+import logo from "../Palm_GBA_H.JPG";
 
 
 var date = new Date()
@@ -1414,11 +1415,12 @@ class PDEX extends Component {
             <React.Fragment>
                 <div>
                     <header id="inpageheader">
-                        <div className="container">
+                        <div className="">
 
                             <div id="logo" className="pull-left">
                                 {this.state.payerName !== '' &&
-                                    <h1><a href="#intro" className="scrollto">{this.state.payerName}</a></h1>
+                                    <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.payerName}</a></h1>
+
 
                                 }
                                 {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}

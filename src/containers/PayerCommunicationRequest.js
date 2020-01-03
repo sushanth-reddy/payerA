@@ -19,7 +19,7 @@ import moment from "moment";
 import { SelectPatient } from '../components/SelectPatient';
 import { DropdownPurpose } from '../components/DropdownPurpose';
 import { SelectPayerWithEndpoint } from '../components/SelectPayerWithEndpoint';
-
+import logo from "../Palm_GBA_H.JPG";
 
 let now = new Date();
 let occurenceStartDate = moment(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 0, 0, 0)).toISOString();
@@ -636,11 +636,12 @@ class CommunicationRequest extends Component {
       <React.Fragment>
         <div>
           <header id="inpageheader">
-            <div className="container">
+            <div className="">
 
               <div id="logo" className="pull-left">
+                
                 {this.state.currentPayer!=='' &&
-                  <h1><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                  <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                 }
                 {/* <h1><a href="#intro" className="scrollto">{this.state.</a></h1> */}
                 {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
