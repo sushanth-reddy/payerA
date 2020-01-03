@@ -1102,7 +1102,6 @@ class PDEX extends Component {
             this.UpdateCommunicationRequest();
             if (response.hasOwnProperty('entry')) {
                 let communicationId = response.entry[0].response.location.split('/')[1]
-
                 this.setState({ success: true })
                 this.setState({ successMsg: 'Communication has been posted to payer successfully with id - ' + communicationId })
                 // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
