@@ -183,8 +183,13 @@ class PDEX extends Component {
           }
         let resources = [];
         let payersList = await this.getPayerList()
-        let payer = payersList.find(payer => payer.id === this.state.config.payer_id);
-        console.log(payer, "currentPayer")
+        console.log(this.state.config,'ooo',payersList)
+        let payer;
+        console.log(this.state.config.payer_id, "currentPayer")
+
+        if(this.state.config.hasOwnProperty('payer_id')){
+            payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
+        }
         this.setState({ fhir_url: payer.payer_end_point })
         this.setState({ requesterIdentifier: payer.payer_identifier })
         this.setState({ payerName: payer.payer_name })

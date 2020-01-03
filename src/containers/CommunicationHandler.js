@@ -201,7 +201,7 @@ class CommunicationHandler extends Component {
     try {
       
       let payersList = await this.getPayerList()
-      let payer = payersList.find(payer => payer.id === this.state.config.payer_id);
+      let payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
       // console.log(payer, "currentPayer")
       this.setState({ currentPayer: payer })
       this.setState({ payer_name: payer.payer_name })

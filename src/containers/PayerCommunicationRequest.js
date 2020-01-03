@@ -124,7 +124,9 @@ class CommunicationRequest extends Component {
       currentPayer: '',
       requesterCommRequest: '',
       purpose: '',
-      note: ''
+      note: '',
+      config: sessionStorage.getItem('config') !== undefined ? JSON.parse(sessionStorage.getItem('config')) : {},
+
     }
 
 
@@ -272,7 +274,7 @@ class CommunicationRequest extends Component {
     let payersList = await this.getPayerList()
     let payer;
     if(payersList !==undefined){
-      payer = payersList.find(payer => payer.id === config.current_payer_id);
+      payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
       this.setState({ currentPayer: payer })
       this.setState({payer_name:payer.payer_name})
     }

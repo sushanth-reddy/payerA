@@ -12,8 +12,6 @@ import { SelectPayerWithId } from '../components/SelectPayerWithId.js';
 
 // const NotificationContainer = window.ReactNotifications.NotificationContainer;
 // const NotificationManager = window.ReactNotifications.NotificationManager;
-console.log(sessionStorage.getItem('currentPayer') !== 'undefined' ? JSON.parse(sessionStorage.getItem('config')) : {},'plllllll', sessionStorage.getItem('currentPayer'))
-console.log('plllllll', sessionStorage.getItem('currentPayer'))
 class Configuration extends Component {
     constructor(props) {
         super(props);
