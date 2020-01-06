@@ -621,11 +621,9 @@ class ProviderCommunicationRequest extends Component {
         this.setState({ requirementSteps: steps, loadCards: false });
     }
 
-    async createFhirResource(json, resourceName, url, user, claim = false) {
+    async createFhirResource(json, resourceName, url, user, claim = false,load=false) {
         //  console.log("this.state.procedure_code")
         // console.log(this.state.procedure_code)
-        this.setState({ loading: true });
-
         try {
             // if (claim == true) {
             //   json.about = [{
@@ -673,16 +671,16 @@ class ProviderCommunicationRequest extends Component {
                     var commReqId = data.entry[2].response.location.split('/')[1]
                     this.setState({ reqId: commReqId })
                 }
-                this.setState({ loading: false });
+                
                 return data;
             }).catch((err) => {
                 console.log(err);
-                this.setState({ loading: false });
+                
+                // this.setState({ loading: false });
             })
             return data
         } catch (error) {
             console.error('Unable to create resource', error.message);
-            this.setState({ loading: false });
             this.setState({ dataLoaded: false })
         }
     }
@@ -773,6 +771,7 @@ class ProviderCommunicationRequest extends Component {
         try {
 
             let res_json = {}
+            this.setState({ loading: true });
             this.setState({ dataLoaded: false, reqId: '' })
             // let token = await createToken(sessionStorage.getItem('username'), sessionStorage.getItem('password'));
             // let json_request = await this.getJson();
@@ -1202,7 +1201,9 @@ class ProviderCommunicationRequest extends Component {
             //   // }];
             //   // payer_req_json.identifier.value = commRequest.identifier.value;
             // console.log("payer----------------", provider_req_json);
-            let communication = await this.createFhirResource(provider_req_json, 'CommunicationRequest', this.state.config.payer_fhir_url, 'payer', true)
+            let communication = await this.createFhirResource(provider_req_json, 'CommunicationRequest', this.state.config.payer_fhir_url, 'payer', true).then(()=>{
+                this.setState({loading:false})
+            })
 
             console.log(commRequest, 'yess')
             console.log(communication, 'yess plese')

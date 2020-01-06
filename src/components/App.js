@@ -17,6 +17,7 @@ import TASK from '../containers/PDEX';
 import ProviderCommunicationRequest from '../containers/ProviderCommunicationRequest';
 import { Request } from '../containers/Request';
 import PDEXCommunicationHandler from '../containers/PDEXCommunicationHandler';
+import CDEXCommunicationHandler from '../containers/CDEXCommunicationHandler';
 
 library.add(faIgloo,faNotesMedical)
 export default class App extends Component {
@@ -33,6 +34,7 @@ export default class App extends Component {
                     <Route path={"/request"} component={Request} />                    
                     <Route path={"/request_doc"} component={ProviderCommunicationRequest} />                    
                     <Route path={"/pdex_documents"} component={PDEXCommunicationHandler} />                    
+                    <Route path={"/cdex_documents"} component={CDEXCommunicationHandler} />                    
                     {/* <Route path={"/review"} component={Review} /> */}
                     <Route exact path="/index" component={Main} />
                     <Route path={"/launch"} component={Launch} />

@@ -16,11 +16,11 @@ export class Request extends Component {
             config: sessionStorage.getItem('config') !== undefined ? JSON.parse(sessionStorage.getItem('config')) : {},
             currentPayer: '',
             payer_name: "",
-            defaultValues :[
+            defaultValues: [
                 { 'key': 'request_pcde', 'text': 'Request for Coverage Transition Document', 'value': 'request_document' },
                 { 'key': 'claim', 'text': 'Request for Additional Documents', 'value': 'claim' }
             ],
-            purpose:'request_document'
+            purpose: 'request_document'
         }
         this.updateStateElement = this.updateStateElement.bind(this)
     }
@@ -78,7 +78,7 @@ export class Request extends Component {
             <React.Fragment>
                 <div>
                     <header id="inpageheader">
-                        <div className="container">
+                        <div className="">
 
                             <div id="logo" className="pull-left">
                                 {this.state.currentPayer !== '' &&
@@ -90,7 +90,13 @@ export class Request extends Component {
 
                             <nav id="nav-menu-container">
                                 <ul className="nav-menu">
-                                    <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li>
+                                    <li className="menu-active menu-has-children"><a href="">List Of documents</a>
+                                        <ul>
+                                            <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Payer data exchange</a></li>
+                                            <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical data exchange</a></li>
+                                        </ul>
+                                    </li>
+                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}
                                     <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>Task</a></li>
                                     <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
 
@@ -115,7 +121,7 @@ export class Request extends Component {
                                         <Dropdown
                                             className={blackBorder}
                                             options={this.state.defaultValues}
-                                            placeholder='Select Purpose'    
+                                            placeholder='Select Purpose'
                                             search
                                             selection
                                             fluid

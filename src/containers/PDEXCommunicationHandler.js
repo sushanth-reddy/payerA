@@ -95,6 +95,7 @@ class PDEXCommunicationHandler extends Component {
       currentPayer: '',
       config: sessionStorage.getItem('config') !== undefined ? JSON.parse(sessionStorage.getItem('config')) : {},
       payer_name: '',
+      payloadData: '',
       requirementSteps: [{ 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
       {
         'step_no': 2, 'step_str': 'Retrieving the required 4 FHIR resources on crd side.', 'step_status': 'step_not_started'
@@ -103,7 +104,10 @@ class PDEXCommunicationHandler extends Component {
       { 'step_no': 4, 'step_str': 'Generating cards based on requirements .', 'step_status': 'step_not_started' },
       { 'step_no': 5, 'step_str': 'Retrieving Smart App', 'step_status': 'step_not_started' }],
       errors: {},
-      loadingSteps: false
+      loadingSteps: false,
+      loading: false,
+      dataLoaded: false,
+      showMsg: false,
     }
     this.requirementSteps = [
       { 'step_no': 1, 'step_str': 'Communicating with CRD system.', 'step_status': 'step_loading' },
@@ -137,6 +141,9 @@ class PDEXCommunicationHandler extends Component {
     this.getPatientDetails = this.getPatientDetails.bind(this);
     this.redirectTo = this.redirectTo.bind(this);
     this.sortCommunications = this.sortCommunications.bind(this);
+    this.startLoading = this.startLoading.bind(this);
+    this.submit_info = this.submit_info.bind(this);
+
 
   }
   consoleLog(content, type) {
@@ -727,13 +734,14 @@ class PDEXCommunicationHandler extends Component {
   }
   async getPdeDocumnet(communication) {
     let data;
-    if(communication.hasOwnProperty('payload')){
+    if (communication.hasOwnProperty('payload')) {
       data = communication.payload[0].contentAttachment.data
     }
     // let od =JSON.parse(data)
-    let decodeData = Buffer.from(data, 'base64')
-    console.log(data,decodeData,'decode data',communication)
-    this.setState({payloadData: data})
+    // let decodeData = Buffer.from(data, 'base64')
+    let decodeData = atob(data)
+    console.log(data, decodeData, 'decode data', communication)
+    this.setState({ payloadData: JSON.parse(decodeData) })
   }
 
 
@@ -829,8 +837,99 @@ class PDEXCommunicationHandler extends Component {
     if (fhirResponse) {
       this.setState({ provider_org: recipientResponse.name })
     }
+  }
 
+  async createFhirResource(json, resourceName, url) {
 
+    try {
+      const fhirClient = new Client({ baseUrl: url });
+      let token;
+      console.log('The json is : ', json);
+      let data = fhirClient.create({
+        resourceType: resourceName,
+        body: json,
+        headers: { "Content-Type": "application/fhir+json" }
+      }).then((data) => {
+        console.log("Data::", data);
+        this.setState({ dataLoaded: true })
+
+        this.setState({ reqId: data.id })
+        return data;
+      }).catch((err) => {
+        console.log(err);
+      })
+      return data
+    } catch (error) {
+      console.error('Unable to create resource', error.message);
+      // this.setState({ loading: false });
+      this.setState({ dataLoaded: false })
+    }
+  }
+
+  startLoading() {
+    // if (this.validateForm()) {
+    this.setState({ loading: true }, () => {
+      this.submit_info();
+    })
+    // }
+  }
+  async getResources(resource, identifier) {
+    var url = this.state.currentPayer.payer_end_point + "/" + resource + "?identifier=" + identifier;
+    // let token;
+    let headers = {
+      "Content-Type": "application/json",
+    }
+    // token = await this.getToken(config.payerA.grant_type, config.payerA.client_id, config.payerA.client_secret);
+    // if (config.payerA.authorizedPayerFhir) {
+    //   headers['Authorization'] = 'Bearer ' + token
+    // }
+    let sender = await fetch(url, {
+      method: "GET",
+      headers: headers
+    }).then(response => {
+      return response.json();
+    }).then((response) => {
+      // console.log("----------response", response);
+      return response;
+    }).catch(reason =>
+      console.log("No response recieved from the server", reason)
+    );
+    // console.log(sender, 'sender')
+    return sender;
+  }
+
+  async submit_info() {
+
+    try {
+      this.setState({ dataLoaded: false, reqId: '' })
+      let payloadData = this.state.payloadData
+      this.setState({ loading: true });
+      if (payloadData !== '' || payloadData !== undefined) {
+        let bundleResource = await this.getResources("Bundle", payloadData.identifier.value)
+        if (!bundleResource.hasOwnProperty('entry')) {
+          await this.createFhirResource(payloadData, 'Bundle', this.state.currentPayer.payer_end_point).then(() => {
+            this.setState({ loading: false })
+          })
+        }
+        else {
+          this.setState({ showMsg: true })
+          let id = bundleResource.entry[0].resource.id
+          this.setState({ reqId: id })
+          this.setState({ loading: false })
+        }
+
+      }
+
+    }
+    catch (error) {
+      console.log(error)
+      this.setState({ response: error });
+      this.setState({ loading: false });
+      if (error instanceof TypeError) {
+        this.consoleLog(error.name + ": " + error.message);
+      }
+      this.setState({ dataLoaded: false })
+    }
   }
 
   async getJson() {
@@ -1017,14 +1116,20 @@ class PDEXCommunicationHandler extends Component {
             <div className="">
 
               <div id="logo" className="pull-left">
-                {this.state.currentPayer!=='' &&
-                  <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                {this.state.currentPayer !== '' &&
+                  <h1><img style={{ height: "60px", marginTop: "-13px" }} src={logo} /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                 }
                 {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
               </div>
 
               <nav id="nav-menu-container">
                 <ul className="nav-menu">
+                  <li className="menu-active menu-has-children"><a href="">List Of  documents</a>
+                    <ul>
+                      <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Payer data exchange</a></li>
+                      <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical data exchange</a></li>
+                    </ul>
+                  </li>
                   <li><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for Document</a></li>
                   <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>TASK</a></li>
                   <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
@@ -1153,6 +1258,36 @@ class PDEXCommunicationHandler extends Component {
                     </div>}
 
                 </div>}
+              {this.state.payloadData !== '' &&
+                <div className="form-group col-12"><pre>{JSON.stringify(this.state.payloadData, null, 2)}</pre></div>
+
+              }
+              {this.state.payloadData !== '' &&
+                <div className=" form-group col-10 right-form text-center">
+                  <button type="button" onClick={this.startLoading}>Accept and Import
+                  <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
+                      <Loader
+                        type="Oval"
+                        color="#fff"
+                        height="15"
+                        width="15"
+                      />
+                    </div>
+                  </button>
+                  {this.state.dataLoaded &&
+                    <div style={{ textAlign: "center", paddingTop: "5%" }}>
+                      <p style={{ color: "green" }}>{"Document has been imported successfully with id : " + this.state.reqId + "."}</p>
+                    </div>
+                  }
+                  {this.state.showMsg &&
+                    <div style={{ textAlign: "center", paddingTop: "5%" }}>
+                      <p style={{ color: "green" }}>{"Document has already been imported with id : " + this.state.reqId + "."}</p>
+                    </div>
+                  }
+                </div>
+
+              }
+
             </div>
 
 

@@ -520,7 +520,7 @@ class TASK extends Component {
 
     }
     async showError() {
-        if (this.state.carePlanResources === "") { 
+        if (this.state.carePlanResources === "") {
             this.setState({ error: true });
             this.setState({ errorMsg: "No Active Care Plans Found!!" })
         }
@@ -809,8 +809,8 @@ class TASK extends Component {
 
             // Bundle.entry.push({resource:compositionJson})
         }
-        else{
-            
+        else {
+
         }
 
 
@@ -1041,17 +1041,19 @@ class TASK extends Component {
                 })(this.state.files[i])
             }
         }
-        bundle.entry[0].resource.section.push({
-            "code": {
-                "coding": [
-                    {
-                        "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
-                        "code": "otherDocumentation"
-                    }
-                ]
-            },
-            "entry": files_arr
-        })
+        if (files_arr.length > 0) {
+            bundle.entry[0].resource.section.push({
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                            "code": "otherDocumentation"
+                        }
+                    ]
+                },
+                "entry": files_arr
+            })
+        }
         this.setState({ bundle: bundle })
         // let comp = await this.createFhirResource(this.state.compositionJson, 'Composition', this.state.fhir_url)
         console.log(this.state.bundle, 'composition Resource has been Created')
@@ -1488,7 +1490,7 @@ class TASK extends Component {
 
                             <div id="logo" className="pull-left">
                                 {this.state.payerName !== '' &&
-                                    <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.payerName}</a></h1>
+                                    <h1><img style={{ height: "60px", marginTop: "-13px" }} src={logo} /><a href="#intro" className="scrollto">{this.state.payerName}</a></h1>
 
 
                                 }
@@ -1497,7 +1499,13 @@ class TASK extends Component {
 
                             <nav id="nav-menu-container">
                                 <ul className="nav-menu">
-                                    <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li>
+                                    <li className="menu-active menu-has-children"><a href="">List Of documents</a>
+                                        <ul>
+                                            <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Payer data exchange</a></li>
+                                            <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical data exchange</a></li>
+                                        </ul>
+                                    </li>
+                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}
                                     <li><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for Document</a></li>
                                     <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
                                     {/* <li className="menu-active menu-has-children"><a href="">Services</a>
@@ -1600,25 +1608,25 @@ class TASK extends Component {
                                         })}
                                     </div>
                                 }
-                                {this.state.carePlanResources!=='' &&
-                                <div className="form-row" >
-                                    <div className="form-group col-2" >
-                                <button className="btn list-btn" style={{ float: "left" }} onClick={this.showBundlePreview}>
-                                    Preview</button>
+                                {this.state.carePlanResources !== '' &&
+                                    <div className="form-row" >
+                                        <div className="form-group col-2" >
+                                            <button className="btn list-btn" style={{ float: "left" }} onClick={this.showBundlePreview}>
+                                                Preview</button>
+                                        </div>
+                                        {this.state.show &&
+
+                                            <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
+                                        }
                                     </div>
-                                {this.state.show &&
-
-                                    <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
-                                }
-                                </div>
 
                                 }
-                                 {this.state.error &&
+                                {this.state.error &&
                                     <div className="decision-card alert-error">
                                         {this.state.errorMsg}
                                     </div>
                                 }
-                                
+
                                 {/* <div className='data-label'>
                                     <div>Search Observations form FHIR
                                         <small> - Enter a search keyword. (ex: height)</small>
@@ -1662,11 +1670,11 @@ class TASK extends Component {
                                     </section>
                                     <div  >{files}</div>
                                 </div>
-                                {this.state.error &&
+                                {/* {this.state.error &&
                                     <div className="decision-card alert-error">
                                         {this.state.errorMsg}
                                     </div>
-                                }
+                                } */}
                                 {this.state.success &&
                                     <div className="decision-card alert-success">
                                         {this.state.successMsg}
