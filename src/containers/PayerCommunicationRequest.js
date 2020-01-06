@@ -172,7 +172,7 @@ class CommunicationRequest extends Component {
   updateStateElement = (elementName, value) => {
     // console.log("event----------", value, elementName)
     this.setState({ [elementName]: value })
-   
+
   }
 
 
@@ -268,18 +268,18 @@ class CommunicationRequest extends Component {
 
   async componentDidMount() {
     if (!sessionStorage.getItem('isLoggedIn')) {
-      sessionStorage.setItem('redirectTo', "/payerA");
+      sessionStorage.setItem('redirectTo', "/request");
       this.props.history.push("/login");
     }
     let payersList = await this.getPayerList()
     let payer;
-    if(payersList !==undefined){
+    if (payersList !== undefined) {
       payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
       this.setState({ currentPayer: payer })
-      this.setState({payer_name:payer.payer_name})
+      this.setState({ payer_name: payer.payer_name })
     }
     // console.log(payer, "currentPayer")
-    
+
     // let token = await this.getToken(config.payerA.grant_type, config.payerA.client_id, config.payerA.client_secret);
     // token = "Bearer " + token;
     var myHeaders = new Headers({
@@ -621,7 +621,7 @@ class CommunicationRequest extends Component {
       this.setState({ dataLoaded: false })
     }
   }
-  
+
   onChangeNote(event) {
     this.setState({ note: event.target.value });
   }
@@ -632,18 +632,18 @@ class CommunicationRequest extends Component {
       "format": "DD-MM-YYYY HH:mm",
       "sundayFirst": false
     }
+    console.log('yoooo heree ')
     return (
       <React.Fragment>
         <div>
-          <header id="inpageheader">
+          {/* <header id="inpageheader">
             <div className="container">
 
               <div id="logo" className="pull-left">
                 {this.state.currentPayer!=='' &&
                   <h1><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                 }
-                {/* <h1><a href="#intro" className="scrollto">{this.state.</a></h1> */}
-                {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
+                <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a>
               </div>
 
               <nav id="nav-menu-container">
@@ -652,81 +652,70 @@ class CommunicationRequest extends Component {
                   <li><a href={window.location.protocol + "//" + window.location.host + "/pdex"}>PDEX</a></li>
                   <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
 
-                  {/* <li className="menu-active menu-has-children"><a href="">Services</a>
-                    <ul>
-                      <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/provider_request"}>Prior Auth Submit</a></li>
-                      <li><a href={window.location.protocol + "//" + window.location.host + "/mips"}>MIPS Score</a></li>
-                    </ul>
-                  </li> */}
-                  {/* <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li> */}
-                  {/* <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>
-                    <ul>
-                      <li><a href="" onClick={this.onClickLogout}>Logout</a></li>
-                    </ul>
-                  </li> */}
                 </ul>
               </nav>
             </div>
-          </header>
-          <main id="main" style={{ marginTop: "92px" }}>
+          </header> */}
+          {/* <main id="main" style={{ marginTop: "192px" }}> */}
+          <main id="main" >
             <div className="form">
-              <div className="container">
-                <div className="section-header">
+              {/* <div className="container"> */}
+              {/* <div className="section-header">
                   <h3>Request for Coverage Transition Document
                   <div className="sub-heading"></div>
                   </h3>
 
-                </div>
-                <div>
-                  <div className="form-row">
-                    <div className="form-group col-3 offset-1">
-                      {/* <span className="title-small">Beneficiary*</span> */}
-                      <h4 className="title">Beneficiary*</h4>
-
-                    </div>
-                    <div className="form-group col-8">
-                      <SelectPatient elementName="patientResource" updateCB={this.updateStateElement} />
-                    </div>
-
-
-
-
+                </div> */}
+              <div>
+                <div className="form-row">
+                  <div className="form-group col-3 offset-1">
+                    {/* <span className="title-small">Beneficiary*</span> */}
+                    <h4 className="title">Beneficiary*</h4>
 
                   </div>
-                  {this.state.patientResource !== '' &&
-                    <div >
-                      <div className="form-row">
-                        <div className="form-group col-md-3 offset-1">
-                          <h4 className="title">Beneficiary Info</h4>
-                        </div>
+                  <div className="form-group col-8">
+                    <SelectPatient elementName="patientResource" updateCB={this.updateStateElement} />
+                  </div>
 
-                        <div className="form-group col-md-4">
-                          <span className="title-small">First Name</span>
-                          <input type="text" name="firstName" className="form-control" id="name" placeholder="First Name"
-                            value={this.state.patientResource.name[0].given} disabled
-                          />
 
-                        </div>
-                        <div className="form-group col-md-4">
-                          <span className="title-small">Last Name</span>
-                          <input type="text" name="lastName" className="form-control" id="lastname" placeholder="Last Name"
-                            value={this.state.patientResource.name[0].family} disabled
-                          />
 
-                        </div>
+
+
+                </div>
+                {this.state.patientResource !== '' &&
+                  <div >
+                    <div className="form-row">
+                      <div className="form-group col-md-3 offset-1">
+                        <h4 className="title">Beneficiary Info</h4>
+                      </div>
+
+                      <div className="form-group col-md-4">
+                        <span className="title-small">First Name</span>
+                        <input type="text" name="firstName" className="form-control" id="name" placeholder="First Name"
+                          value={this.state.patientResource.name[0].given} disabled
+                        />
 
                       </div>
-                      <div className="form-row">
-                        <div className="form-group col-md-3 offset-1">
-                          {/* <h4 className="title">Gender</h4> */}
-                        </div>
-                        {this.state.patientResource.hasOwnProperty('gender') &&
-                          <div className="form-group col-md-4">
-                            <span className="title-small">Gender</span>
-                            <input type="text" name="gender" className="form-control" id="gender" placeholder="Gender"
-                              value={this.state.patientResource.gender} disabled
-                            />
-                            {/* <Dropdown
+                      <div className="form-group col-md-4">
+                        <span className="title-small">Last Name</span>
+                        <input type="text" name="lastName" className="form-control" id="lastname" placeholder="Last Name"
+                          value={this.state.patientResource.name[0].family} disabled
+                        />
+
+                      </div>
+
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group col-md-3 offset-1">
+                        {/* <h4 className="title">Gender</h4> */}
+                      </div>
+                      {this.state.patientResource.hasOwnProperty('gender') &&
+                        <div className="form-group col-md-4">
+                          <span className="title-small">Gender</span>
+                          <input type="text" name="gender" className="form-control" id="gender" placeholder="Gender"
+                            value={this.state.patientResource.gender} disabled
+                          />
+                          {/* <Dropdown
                                className={"blackBorder"}
                                options={this.state.genderOptions}
                                placeholder='Gender'
@@ -736,15 +725,15 @@ class CommunicationRequest extends Component {
                                value={this.state.gender}
                                onChange={this.handleGenderChange}
                              /> */}
-                          </div>
-                        }
-                        {this.state.patientResource.hasOwnProperty('birthDate') &&
-                          <div className="form-group col-md-4">
-                            <span className="title-small">Birth Date</span>
-                            <input type="text" name="birthDate" className="form-control" id="birthDate" placeholder="Birth Date"
-                              value={this.state.patientResource.birthDate} disabled
-                            />
-                            {/* <DateInput
+                        </div>
+                      }
+                      {this.state.patientResource.hasOwnProperty('birthDate') &&
+                        <div className="form-group col-md-4">
+                          <span className="title-small">Birth Date</span>
+                          <input type="text" name="birthDate" className="form-control" id="birthDate" placeholder="Birth Date"
+                            value={this.state.patientResource.birthDate} disabled
+                          />
+                          {/* <DateInput
                                 name="birthDate"
                                 placeholder="Birth Date"
                                 dateFormat="MM/DD/YYYY"
@@ -753,21 +742,21 @@ class CommunicationRequest extends Component {
                                 iconPosition="left"
                                 onChange={this.changebirthDate}
                               /> */}
-                          </div>
-                        }
-                      </div>
-                      {this.state.patientResource.hasOwnProperty('address') &&
-                        <div className="form-row">
-                          <div className="form-group col-md-3 offset-1">
-                            <h4 className="title"></h4>
-                          </div>
-                          {this.state.patientResource.address[0].hasOwnProperty('state') &&
-                            <div className="form-group col-md-4">
-                              <span className="title-small">State</span>
-                              <input type="text" name="state" className="form-control" id="state" placeholder="State"
-                                value={this.state.patientResource.address[0].state} disabled
-                              />
-                              {/* <Dropdown
+                        </div>
+                      }
+                    </div>
+                    {this.state.patientResource.hasOwnProperty('address') &&
+                      <div className="form-row">
+                        <div className="form-group col-md-3 offset-1">
+                          <h4 className="title"></h4>
+                        </div>
+                        {this.state.patientResource.address[0].hasOwnProperty('state') &&
+                          <div className="form-group col-md-4">
+                            <span className="title-small">State</span>
+                            <input type="text" name="state" className="form-control" id="state" placeholder="State"
+                              value={this.state.patientResource.address[0].state} disabled
+                            />
+                            {/* <Dropdown
                                   className={"blackBorder"}
                                   options={this.state.stateOptions}
                                   placeholder='State'
@@ -777,24 +766,24 @@ class CommunicationRequest extends Component {
                                   value={this.state.patientState}
                                   onChange={this.handlePatientStateChange}
                                 /> */}
-                            </div>
-                          }
-                          {this.state.patientResource.address[0].hasOwnProperty('postalCode') &&
-                            <div className="form-group col-md-4">
-                              <span className="title-small">Postal Code</span>
-                              <input type="text" name="patientPostalCoade" className="form-control" id="patientPostalCoade" placeholder="Postal Code"
-                                value={this.state.patientResource.address[0].postalCode} disabled
-                              />
+                          </div>
+                        }
+                        {this.state.patientResource.address[0].hasOwnProperty('postalCode') &&
+                          <div className="form-group col-md-4">
+                            <span className="title-small">Postal Code</span>
+                            <input type="text" name="patientPostalCoade" className="form-control" id="patientPostalCoade" placeholder="Postal Code"
+                              value={this.state.patientResource.address[0].postalCode} disabled
+                            />
 
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-                  }
-                  {/* <SelectPayer elementName='payer' updateCB={this.updateStateElement} /> */}
-                  <SelectPayerWithEndpoint elementName='payer' updateCB={this.updateStateElement} obj={{'endpoint':true,'offset':true}} />
-                  {/* <div className="form-row">
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+                {/* <SelectPayer elementName='payer' updateCB={this.updateStateElement} /> */}
+                <SelectPayerWithEndpoint elementName='payer' updateCB={this.updateStateElement} obj={{ 'endpoint': true, 'offset': true }} />
+                {/* <div className="form-row">
                     <div className="form-group col-3 offset-1">
                       <h4 className="title">Payer Endpoint</h4>
                     </div>
@@ -804,25 +793,25 @@ class CommunicationRequest extends Component {
                               />
                     </div>
                     </div> */}
-                  <div className="form-row">
+                {/* <div className="form-row">
                     <div className="form-group col-3 offset-1">
                       <h4 className="title">Purpose</h4>
                     </div>
                     <div className="form-group col-8">
                       <DropdownPurpose elementName="purpose" updateCB={this.updateStateElement} />
                     </div>
+                  </div> */}
+                <div className="form-row">
+                  <div className="form-group col-3 offset-1">
+                    <h4 className="title">Note</h4>
                   </div>
-                  <div className="form-row">
-                    <div className="form-group col-3 offset-1">
-                      <h4 className="title">Note</h4>
-                    </div>
-                    <div className="form-group col-8">
-                      <input type="text" name="note" className="form-control" id="note" placeholder="Note"
-                        value={this.state.note} onChange={this.onChangeNote}
-                      />
-                    </div>
+                  <div className="form-group col-8">
+                    <input type="text" name="note" className="form-control" id="note" placeholder="Note"
+                      value={this.state.note} onChange={this.onChangeNote}
+                    />
                   </div>
-                  {/* <div className="form-row">
+                </div>
+                {/* <div className="form-row">
                     <div className="form-group col-3 offset-1">
                       <h4 className="title">Identifier</h4>
                     </div>
@@ -833,27 +822,25 @@ class CommunicationRequest extends Component {
                       <div className="validation"></div>
                     </div>
                   </div> */}
-                  <div className="text-center">
-                    <button type="button" onClick={this.startLoading}>Submit
+                <div className="text-center">
+                  <button type="button" onClick={this.startLoading}>Submit
                     <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
-                        <Loader
-                          type="Oval"
-                          color="#fff"
-                          height="15"
-                          width="15"
-                        />
-                      </div>
-                    </button>
-                    {this.state.dataLoaded &&
-                      <div style={{ textAlign: "center", paddingTop: "5%" }}>
-                        <p style={{ color: "green" }}>{"Communication Request has been created successfully with id : " + this.state.reqId + "."}</p>
-                      </div>
-                    }
-
-
-                  </div>
+                      <Loader
+                        type="Oval"
+                        color="#fff"
+                        height="15"
+                        width="15"
+                      />
+                    </div>
+                  </button>
+                  {this.state.dataLoaded &&
+                    <div style={{ textAlign: "center", paddingTop: "5%" }}>
+                      <p style={{ color: "green" }}>{"Communication Request has been created successfully with id : " + this.state.reqId + "."}</p>
+                    </div>
+                  }
                 </div>
               </div>
+              {/* </div> */}
             </div>
           </main>
         </div>

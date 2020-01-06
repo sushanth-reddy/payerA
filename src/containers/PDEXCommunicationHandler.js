@@ -31,7 +31,7 @@ const types = {
   warning: "warningClass"
 }
 
-class CommunicationHandler extends Component {
+class PDEXCommunicationHandler extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -115,7 +115,7 @@ class CommunicationHandler extends Component {
       status: (foo => { return foo !== "draft" && foo !== "open" }),
       code: (foo => { return !foo.match(/^[a-z0-9]+$/i) })
     };
-    
+
     this.onFhirUrlChange = this.onFhirUrlChange.bind(this);
     this.onAccessTokenChange = this.onAccessTokenChange.bind(this);
     this.onScopeChange = this.onScopeChange.bind(this);
@@ -199,7 +199,7 @@ class CommunicationHandler extends Component {
     }
 
     try {
-      
+
       let payersList = await this.getPayerList()
       let payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
       // console.log(payer, "currentPayer")
@@ -213,7 +213,7 @@ class CommunicationHandler extends Component {
       // console.log('The token is : ', token);
 
       // let searchResponse = await fhirClient.search({ resourceType: "Communication" })
-      let communicationBundle = await this.getCommunications("recipient.identifier="+payer.payer_identifier)
+      let communicationBundle = await this.getCommunications("recipient.identifier=" + payer.payer_identifier)
       // console.log("Seacrjh ress",communicationBundle)
       let comm = [];
       if (communicationBundle.total > 0) {
@@ -237,7 +237,7 @@ class CommunicationHandler extends Component {
         // );
         this.setState({ communicationList: comm });
       }
-      let communicationReqBundle = await this.getCommunicationReq("requester.identifier="+payer.payer_identifier)
+      let communicationReqBundle = await this.getCommunicationReq("requester.identifier=" + payer.payer_identifier)
       let comm_req = [];
       if (communicationReqBundle.total > 0) {
         if (communicationReqBundle.hasOwnProperty('entry')) {
@@ -375,7 +375,7 @@ class CommunicationHandler extends Component {
     // if (this.props.config.payer.authorizedPayerFhir) {
     //   headers['Authorization'] = 'Bearer ' + token
     // }
-    const fhirResponse = await fetch(tempUrl + "/Communication?"+searchParams+"&_count=100000", {
+    const fhirResponse = await fetch(tempUrl + "/Communication?" + searchParams + "&_count=100000", {
       method: "GET",
       headers: headers,
     }).then(response => {
@@ -400,7 +400,7 @@ class CommunicationHandler extends Component {
     // if (this.props.config.payer.authorizedPayerFhir) {
     //   headers['Authorization'] = 'Bearer ' + token
     // }
-    const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?"+searchParams+"&_count=100000", {
+    const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?" + searchParams + "&_count=100000", {
       method: "GET",
       headers: headers
     }).then(response => {
@@ -703,6 +703,8 @@ class CommunicationHandler extends Component {
         if (communication_request.hasOwnProperty('payload')) {
           await this.getRequestedDocuments(communication_request['payload']);
         }
+
+
         // if (communication_request.hasOwnProperty('occurrencePeriod')) {
         //   // await this.getDocuments(communication_request['payload']);
         //   this.setState({ startDate: communication_request.occurrencePeriod.start })
@@ -714,10 +716,25 @@ class CommunicationHandler extends Component {
         // this.setState({ communicationRequest: communication_request });
         // await this.getObservationDetails();
 
+        await this.getPdeDocumnet(communication).then(() => {
+
+        })
+
         this.setState({ form_load: true });
       }
     }
   }
+  async getPdeDocumnet(communication) {
+    let data;
+    if(communication.hasOwnProperty('payload')){
+      data = communication.payload[0].contentAttachment.data
+    }
+    // let od =JSON.parse(data)
+    let decodeData = Buffer.from(data, 'base64')
+    console.log(data,decodeData,'decode data',communication)
+    this.setState({payloadData: data})
+  }
+
 
   async getRequestedDocuments(payload) {
     let strings = [];
@@ -999,7 +1016,7 @@ class CommunicationHandler extends Component {
             <div className="container">
 
               <div id="logo" className="pull-left">
-                {this.state.currentPayer!=='' &&
+                {this.state.currentPayer !== '' &&
                   <h1><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                 }
                 {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
@@ -1007,8 +1024,8 @@ class CommunicationHandler extends Component {
 
               <nav id="nav-menu-container">
                 <ul className="nav-menu">
-                  <li><a href={window.location.protocol + "//" + window.location.host + "/payerA"}>Request for CTD</a></li>
-                  <li><a href={window.location.protocol + "//" + window.location.host + "/pdex"}>PDEX</a></li>
+                  <li><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for Document</a></li>
+                  <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>TASK</a></li>
                   <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
 
                   {/* <li className="menu-active menu-has-children"><a href="">Services</a>
@@ -1153,6 +1170,6 @@ function mapStateToProps(state) {
     config: state.config,
   };
 };
-export default withRouter(connect(mapStateToProps)(CommunicationHandler));
+export default withRouter(connect(mapStateToProps)(PDEXCommunicationHandler));
 
 

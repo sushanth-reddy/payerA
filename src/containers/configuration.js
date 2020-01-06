@@ -48,7 +48,7 @@ class Configuration extends Component {
     onClickLogout() {
         sessionStorage.removeItem('isLoggedIn');
         sessionStorage.removeItem('fhir_url');
-        this.props.history.push('/payerA');
+        this.props.history.push('/request');
     }
 
     onChangeTokenExpiry(event) {
@@ -216,7 +216,7 @@ class Configuration extends Component {
                             <nav id="nav-menu-container">
                                 <ul className="nav-menu">
                                     {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}
-                                    <li><a href={window.location.protocol + "//" + window.location.host + "/payerA"}>Request for CTD</a></li>
+                                    <li><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for CTD</a></li>
                                     {/* <li><a href={window.location.protocol + "//" + window.location.host + "/payerB"}>PDEX</a></li> */}
                                     {/* <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li> */}
                                     <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>

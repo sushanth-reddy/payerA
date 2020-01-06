@@ -4,17 +4,15 @@ import { Dropdown } from 'semantic-ui-react';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 
-const defaultValues = [
-    { 'key': 'request_pcde', 'text': 'Request for Coverage Transition Document', 'value':'request_pcde' }
-];
 
 function dropDownOptions() {
     return defaultValues.map((v) => { return { key: v.key, text: v.text } })
 }
 
 let blackBorder = "blackBorder";
+let defaultValues; 
 
-export  class DropdownPurpose extends Component {
+export class DropdownPurpose extends Component {
     constructor(props) {
         super(props);
         this.state = { currentValue: "" }
@@ -36,6 +34,22 @@ export  class DropdownPurpose extends Component {
         } else {
             blackBorder = "";
         }
+        defaultValues = [
+                    { 'key': 'request_pcde', 'text': 'Request for Coverage Transition Document', 'value': 'request_document' },
+                { 'key': 'claim', 'text': 'Request for Additional Documents', 'value': 'claim' }
+
+                ];
+        // console.log(this.props, 'props')
+        // if (this.props.pdex) {
+        //     defaultValues = [
+        //         { 'key': 'request_pcde', 'text': 'Request for Coverage Transition Document', 'value': 'request_pcde' }
+        //     ];
+        // }
+        // else {
+        //     defaultValues = [
+        //         { 'key': 'claim', 'text': 'Claim', 'value': 'claim' }
+        //     ];
+        // }
         return (
             <Dropdown
                 className={blackBorder}
@@ -44,6 +58,7 @@ export  class DropdownPurpose extends Component {
                 search
                 selection
                 fluid
+                value = 'request_document'
                 onChange={this.handleChange}
             />
         )
@@ -52,9 +67,8 @@ export  class DropdownPurpose extends Component {
 
 function mapStateToProps(state) {
     return {
-      config: state.config,
+        config: state.config,
     }
-  }
-  
-  export default withRouter(connect(mapStateToProps)(DropdownPurpose));
-  
+}
+
+export default withRouter(connect(mapStateToProps)(DropdownPurpose));

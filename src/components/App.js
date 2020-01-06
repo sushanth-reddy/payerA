@@ -13,7 +13,10 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { faIgloo,faNotesMedical } from '@fortawesome/free-solid-svg-icons';
 import PayerCommunicationRequest from '../containers/PayerCommunicationRequest';
 import PDEX from '../containers/PDEX';
-import CommunicationHandler from '../containers/CommunicationHandler';
+import TASK from '../containers/PDEX';
+import ProviderCommunicationRequest from '../containers/ProviderCommunicationRequest';
+import { Request } from '../containers/Request';
+import PDEXCommunicationHandler from '../containers/PDEXCommunicationHandler';
 
 library.add(faIgloo,faNotesMedical)
 export default class App extends Component {
@@ -21,12 +24,15 @@ export default class App extends Component {
         return (
             <BrowserRouter>
                 <Switch>
-                    <Route exact path="/" component={() => { return <Redirect to="/payerA" />}} />
+                    <Route exact path="/" component={() => { return <Redirect to="/request" />}} />
                     <Route path={"/login"} component={LoginPage} />                    
-                    <Route path={"/pdex"} component={PDEX} />
+                    {/* <Route path={"/pdex"} component={PDEX} /> */}
+                    <Route path={"/task"} component={TASK} />
                     {/* <Route path={"/prior_auth"} component={PriorAuthorization} /> */}
                     <Route path={"/payerA"} component={PayerCommunicationRequest} />                    
-                    <Route path={"/pdex_documents"} component={CommunicationHandler} />                    
+                    <Route path={"/request"} component={Request} />                    
+                    <Route path={"/request_doc"} component={ProviderCommunicationRequest} />                    
+                    <Route path={"/pdex_documents"} component={PDEXCommunicationHandler} />                    
                     {/* <Route path={"/review"} component={Review} /> */}
                     <Route exact path="/index" component={Main} />
                     <Route path={"/launch"} component={Launch} />

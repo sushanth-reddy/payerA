@@ -29,7 +29,7 @@ const types = {
     debug: "debugClass",
     warning: "warningClass"
 }
-class PDEX extends Component {
+class TASK extends Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -56,7 +56,7 @@ class PDEX extends Component {
             content: [],
             senderOrganization: {},
             requesterOrganization: {},
-            requesterIdentifier:'',
+            requesterIdentifier: '',
             valueString: '',
             communicationPayload: [],
             documentContent: [],
@@ -88,7 +88,7 @@ class PDEX extends Component {
             communicationIdentifier: this.randomString(),
             fhir_url: '',
             endpoint: '',
-            show:false
+            show: false
         };
         this.goTo = this.goTo.bind(this);
         this.getCommunicationRequests = this.getCommunicationRequests.bind(this);
@@ -178,24 +178,24 @@ class PDEX extends Component {
     }
     async componentDidMount() {
         if (!sessionStorage.getItem('isLoggedIn')) {
-            sessionStorage.setItem('redirectTo', "/pdex");
+            sessionStorage.setItem('redirectTo', "/task");
             this.props.history.push("/login");
-          }
+        }
         let resources = [];
         let payersList = await this.getPayerList()
-        console.log(this.state.config,'ooo',payersList)
+        console.log(this.state.config, 'ooo', payersList)
         let payer;
         console.log(this.state.config.payer_id, "currentPayer")
 
-        if(this.state.config.hasOwnProperty('payer_id')){
+        if (this.state.config.hasOwnProperty('payer_id')) {
             payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
         }
         this.setState({ fhir_url: payer.payer_end_point })
         this.setState({ requesterIdentifier: payer.payer_identifier })
         this.setState({ payerName: payer.payer_name })
         // sessionStorage.setItem('requesterPayer', JSON.stringify(requesterPayer))
-        
-        let resp = await this.getCommunicationRequests('sender.identifier='+payer.payer_identifier);
+
+        let resp = await this.getCommunicationRequests('sender.identifier=' + payer.payer_identifier);
         // console.log("resp------", resp);
         if (resp != undefined) {
             if (resp.entry != undefined) {
@@ -217,13 +217,13 @@ class PDEX extends Component {
         else {
             console.log('no communications')
         }
-        // console.log("-------", resources);
+        console.log("-------", resources);
         this.setState({ comm_req: resources });
         // this.displayCommunicataionRequests();
     }
-    showBundlePreview(){
+    showBundlePreview() {
         let show = this.state.show;
-        this.setState({show:!show});
+        this.setState({ show: !show });
     }
     indexOfFile(file) {
         for (var i = 0; i < this.state.files.length; i++) {
@@ -324,7 +324,7 @@ class PDEX extends Component {
         //     // console.log('The token is : ', token, tempUrl);
         //     headers['Authorization'] = 'Bearer ' + token
         // }
-        const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?"+searchParams+"&_count=100000", {
+        const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?" + searchParams + "&_count=100000", {
             method: "GET",
             headers: headers
         }).then(response => {
@@ -483,7 +483,7 @@ class PDEX extends Component {
         // })
 
         await this.getObservationDetails().then(() => {
-            // this.showError()
+            this.showError()
         })
         // await this.getCarePlans().then(() => {
 
@@ -519,9 +519,9 @@ class PDEX extends Component {
 
     }
     async showError() {
-        if (this.state.documentList.length == 0 && this.state.files.length === 0) {
+        if (this.state.carePlanResources === "") { 
             this.setState({ error: true });
-            this.setState({ errorMsg: "No Documents Found!!" })
+            this.setState({ errorMsg: "No Active Care Plans Found!!" })
         }
         else {
             this.setState({ error: false });
@@ -530,7 +530,7 @@ class PDEX extends Component {
 
     async getReferences(object, resource) {
         let referenceArray = []
-        console.log(object, 'objjj')
+        // console.log(object, 'objjj')
         if (resource === 'Claim') {
             if (object.hasOwnProperty('enterer')) {
                 let enterer = await this.getResources(object.enterer.reference)
@@ -555,6 +555,12 @@ class PDEX extends Component {
             }
             if (object.hasOwnProperty('encounter')) {
                 let encounter = await this.getResources(object.encounter.reference)
+                if (encounter.hasOwnProperty('participant')) {
+                    if (encounter.participant[0].hasOwnProperty('individual')) {
+                        let practitioner = await this.getResources(encounter.participant[0].individual.reference)
+                        referenceArray.push({ resource: practitioner })
+                    }
+                }
                 referenceArray.push({ resource: encounter })
             }
             if (object.hasOwnProperty('insurance')) {
@@ -572,6 +578,12 @@ class PDEX extends Component {
         else if (resource === "CarePlan") {
             if (object.hasOwnProperty('encounter')) {
                 let encounter = await this.getResources(object.encounter.reference)
+                if (encounter.hasOwnProperty('participant')) {
+                    if (encounter.participant[0].hasOwnProperty('individual')) {
+                        let practitioner = await this.getResources(encounter.participant[0].individual.reference)
+                        referenceArray.push({ resource: practitioner })
+                    }
+                }
                 referenceArray.push({ resource: encounter })
             }
             if (object.hasOwnProperty('careTeam')) {
@@ -631,6 +643,7 @@ class PDEX extends Component {
         let Bundle = this.state.bundle
         let compositionJson = {
             "resourceType": "Composition",
+            "id": 'composition-json',
             "status": "final",
             "type": {
                 "coding": [
@@ -644,11 +657,7 @@ class PDEX extends Component {
                 "reference": "Patient/" + this.state.patient.id
             },
             "date": currentDateTime,
-            // "author": [
-            //     {
-            //         "reference": "Practitioner/1"
-            //     }
-            // ],
+            "author": [],
             "title": "Example PCDE Document for Diabetes patient",
             "event": [],
             "section": []
@@ -665,6 +674,7 @@ class PDEX extends Component {
 
             }
         })
+
         // let carePlanResources = this.state.carePlanResources
         // this.setState({carePlanResources:carePlanResources})
         // console.log(carePlanResources.entry[0], 'resources')
@@ -719,6 +729,10 @@ class PDEX extends Component {
                     })
                 }
                 Bundle.entry.push({ resource: this.state.patient })
+
+                Bundle.entry.push({ resource: practitionerResource })
+
+
                 console.log('1234', conditionResource, claim, claimResponse, 'conditionsArray')
 
 
@@ -783,12 +797,19 @@ class PDEX extends Component {
                 Bundle.entry.push({ resource: this.state.endpoint })
 
             })
+            if (this.state.patient.hasOwnProperty('generalPractitioner')) {
+                console.log('aaaa', JSON.stringify(this.state.patient.generalPractitioner[0].reference))
+                compositionJson.author.push({ "reference": this.state.patient.generalPractitioner[0].reference })
+            }
             this.setState({ compositionJson: compositionJson })
             Bundle.entry.push({ resource: compositionJson })
             console.log(compositionJson, 'compositionJSON', Bundle)
             this.setState({ bundle: Bundle })
 
             // Bundle.entry.push({resource:compositionJson})
+        }
+        else{
+            
         }
 
 
@@ -982,11 +1003,57 @@ class PDEX extends Component {
         )
 
     }
+    getUnique(arr) {
+        let new_array = []
+        let ids = []
+        for (var i = 0; i < arr.length; i++) {
+            if (ids.indexOf(arr[i].resource.id) == -1) {
+                ids.push(arr[i].resource.id)
+                new_array.push({ 'resource': arr[i].resource })
+            }
+        }
+
+        return new_array;
+    }
 
     async submit_info() {
         let randomString = this.randomString()
+        let bundle = this.state.bundle
+        bundle.entry = this.getUnique(bundle.entry)
+        let files_arr = []
+        if (this.state.files != null) {
+            for (var i = 0; i < this.state.files.length; i++) {
+                (function (file) {
+                    let content_type = file.type;
+                    let file_name = file.name;
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        // get file content  
+                        files_arr.push({
+                            "contentAttachment": {
+                                'contentType': content_type,
+                                'data': reader.result
+                            }
+                        })
+                    }
+                    reader.readAsBinaryString(file);
+                })(this.state.files[i])
+            }
+        }
+        bundle.entry[0].resource.section.push({
+            "code": {
+                "coding": [
+                    {
+                        "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                        "code": "otherDocumentation"
+                    }
+                ]
+            },
+            "entry": files_arr
+        })
+        this.setState({ bundle: bundle })
         // let comp = await this.createFhirResource(this.state.compositionJson, 'Composition', this.state.fhir_url)
-        // console.log(comp, 'composition Resource has been Created')
+        console.log(this.state.bundle, 'composition Resource has been Created')
         this.setState({ loading: true });
         let objJsonStr = JSON.stringify(this.state.bundle);
         let objJsonB64 = Buffer.from(objJsonStr).toString("base64");
@@ -1428,7 +1495,7 @@ class PDEX extends Component {
                             <nav id="nav-menu-container">
                                 <ul className="nav-menu">
                                     <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li>
-                                    <li><a href={window.location.protocol + "//" + window.location.host + "/payerA"}>Request for CTD</a></li>
+                                    <li><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for Document</a></li>
                                     <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
                                     {/* <li className="menu-active menu-has-children"><a href="">Services</a>
                     <ul>
@@ -1530,11 +1597,25 @@ class PDEX extends Component {
                                         })}
                                     </div>
                                 }
-                                <button className="btn list-btn" style={{float:"left"}} onClick={this.showBundlePreview}>
+                                {this.state.carePlanResources!=='' &&
+                                <div className="form-row" >
+                                    <div className="form-group col-2" >
+                                <button className="btn list-btn" style={{ float: "left" }} onClick={this.showBundlePreview}>
                                     Preview</button>
-                                { this.state.show &&
-                                    <div><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
+                                    </div>
+                                {this.state.show &&
+
+                                    <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
                                 }
+                                </div>
+
+                                }
+                                 {this.state.error &&
+                                    <div className="decision-card alert-error">
+                                        {this.state.errorMsg}
+                                    </div>
+                                }
+                                
                                 {/* <div className='data-label'>
                                     <div>Search Observations form FHIR
                                         <small> - Enter a search keyword. (ex: height)</small>
@@ -1555,7 +1636,29 @@ class PDEX extends Component {
                                         <div className="data1">When no observations found. Please upload requested documents.</div>
                                     }
                                 </div> */}
-                               
+                                <div className="header">
+                                    Upload Required/Additional Documentation
+                                </div>
+                                <div className="drop-box">
+                                    <section>
+                                        <Dropzone
+                                            onDrop={this.onDrop.bind(this)}
+                                            onFileDialogCancel={this.onCancel.bind(this)
+                                            }
+                                        >
+                                            {({ getRootProps, getInputProps }) => (
+                                                <div    >
+                                                    <div className='drag-drop-box' {...getRootProps()}>
+                                                        <input {...getInputProps()} />
+                                                        <div className="file-upload-icon"><FontAwesomeIcon icon={faCloudUploadAlt} /></div>
+                                                        <div>Drop files here, or click to select files </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </Dropzone>
+                                    </section>
+                                    <div  >{files}</div>
+                                </div>
                                 {this.state.error &&
                                     <div className="decision-card alert-error">
                                         {this.state.errorMsg}
@@ -1592,4 +1695,4 @@ function mapStateToProps(state) {
     };
 };
 
-export default withRouter(connect(mapStateToProps)(PDEX));
+export default withRouter(connect(mapStateToProps)(TASK));
