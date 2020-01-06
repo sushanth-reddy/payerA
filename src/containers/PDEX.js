@@ -1056,9 +1056,11 @@ class TASK extends Component {
         // let comp = await this.createFhirResource(this.state.compositionJson, 'Composition', this.state.fhir_url)
         console.log(this.state.bundle, 'composition Resource has been Created')
         this.setState({ loading: true });
-        let objJsonStr = JSON.stringify(this.state.bundle);
-        let objJsonB64 = Buffer.from(objJsonStr).toString("base64");
-
+        // let objJsonStr = JSON.stringify(this.state.bundle);
+        // let objJsonB64 = Buffer.from(objJsonStr).toString("base64");
+        // var encoded = btoa(JSON.stringify(dataResult))
+        //             console.log(encoded, 'base64')
+        let encodedJson = btoa(JSON.stringify(this.state.bundle))
         let fullUrl = this.randomString()
         let communicationRequest = this.state.communicationRequest;
         // console.log(this.state.communicationRequest, 'submitted', communicationRequest.sender.reference)
@@ -1073,7 +1075,7 @@ class TASK extends Component {
             'extension': this.state.communicationRequest.payload[0].extension,
             "contentAttachment": {
                 "contentType": "application/fhir+xml",
-                "data": objJsonB64
+                "data": encodedJson
             }
         }]
         this.setState({ communicationPayload: communicationPayload })
