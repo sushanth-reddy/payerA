@@ -9,6 +9,7 @@ import 'react-notifications/lib/notifications.css';
 import { NotificationContainer, NotificationManager } from 'react-notifications';
 import Loader from 'react-loader-spinner';
 import { SelectPayerWithId } from '../components/SelectPayerWithId.js';
+import logo from "../Palm_GBA_H.JPG";
 
 // const NotificationContainer = window.ReactNotifications.NotificationContainer;
 // const NotificationManager = window.ReactNotifications.NotificationManager;
@@ -205,12 +206,12 @@ class Configuration extends Component {
             <React.Fragment>
                 <div>
                     <header id="inpageheader">
-                        <div className="container">
+                        <div >
                             <div id="logo" className="pull-left">
                                 {/* <h1><a href="#intro" className="scrollto">Beryllium</a></h1> */}
                                 {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
                                 {this.state.currentPayer !== null &&
-                                    <h1><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                  <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                                 }
                             </div>
                             <nav id="nav-menu-container">
