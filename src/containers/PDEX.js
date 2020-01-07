@@ -89,7 +89,8 @@ class TASK extends Component {
             communicationIdentifier: this.randomString(),
             fhir_url: '',
             endpoint: '',
-            show: false
+            show: false,
+            currentPayer: '',
         };
         this.goTo = this.goTo.bind(this);
         this.getCommunicationRequests = this.getCommunicationRequests.bind(this);
@@ -192,6 +193,7 @@ class TASK extends Component {
             payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
         }
         this.setState({ fhir_url: payer.payer_end_point })
+        this.setState({ currentPayer: payer })
         this.setState({ requesterIdentifier: payer.payer_identifier })
         this.setState({ payerName: payer.payer_name })
         // sessionStorage.setItem('requesterPayer', JSON.stringify(requesterPayer))
@@ -1491,7 +1493,7 @@ class TASK extends Component {
                                 {this.state.currentPayer !== '' &&
                 //   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
 
-                                    <h1><a href="/request" className="scrollto">{this.state.payerName}</a></h1>
+                                    <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                                 }
                                 
                             </div>
