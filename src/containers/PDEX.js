@@ -580,13 +580,14 @@ class TASK extends Component {
         }
         else if (resource === "CarePlan") {
             if (object.hasOwnProperty('encounter')) {
-                let encounter = await this.getResources(object.encounter.reference)
-                if (encounter.hasOwnProperty('participant')) {
-                    if (encounter.participant[0].hasOwnProperty('individual')) {
-                        let practitioner = await this.getResources(encounter.participant[0].individual.reference)
-                        referenceArray.push({ resource: practitioner })
+                let encounter = this.getResources(object.encounter.reference)
+                    if (encounter.hasOwnProperty('participant')) {
+                        if (encounter.participant[0].hasOwnProperty('individual')) {
+                            let practitioner = await this.getResources(encounter.participant[0].individual.reference)
+                            referenceArray.push({ resource: practitioner })
+                        }
                     }
-                }
+                
                 referenceArray.push({ resource: encounter })
             }
             if (object.hasOwnProperty('careTeam')) {
@@ -1024,7 +1025,7 @@ class TASK extends Component {
         let bundle = this.state.bundle
         bundle.entry = this.getUnique(bundle.entry)
         let files_arr = []
-        if (this.state.files != null) {
+        if (this.state.files !== null) {
             for (var i = 0; i < this.state.files.length; i++) {
                 (function (file) {
                     let content_type = file.type;
@@ -1039,6 +1040,7 @@ class TASK extends Component {
                             }
                         })
                     }
+                    console.log('files')
                     reader.readAsBinaryString(file);
                 })(this.state.files[i])
             }
@@ -1500,16 +1502,17 @@ class TASK extends Component {
 
                             <nav id="nav-menu-container">
                                 <ul className="nav-menu">
-                                <li className="menu-active menu-has-children"><a href="">TASKS</a>
+                                    <li className=" menu-has-children"><a href="">Request</a>
                                         <ul>
                                             <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
-                                            <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Documents</a></li>
+                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/care_gaps"}>Request Care Gaps</a></li>
                                         </ul>
                                     </li>
-                                    <li className="menu-has-children"><a href="">Manage Documents</a>
+                                    <li className=" menu-active menu-has-children"><a href="">TASKS</a>
                                         <ul>
                                             <li ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
                                             <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
+                                            <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Coverage Documents</a></li>
                                         </ul>
                                     </li>
                                     {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}

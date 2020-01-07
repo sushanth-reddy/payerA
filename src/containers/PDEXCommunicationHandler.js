@@ -1125,16 +1125,17 @@ class PDEXCommunicationHandler extends Component {
 
               <nav id="nav-menu-container">
                 <ul className="nav-menu">
-                  <li className="menu-has-children"><a href="">TASKS</a>
+                  <li className=" menu-has-children"><a href="">Request</a>
                     <ul>
                       <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
-                      <li ><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Documents</a></li>
+                      <li ><a href={window.location.protocol + "//" + window.location.host + "/care_gaps"}>Request Care Gaps</a></li>
                     </ul>
                   </li>
-                  <li className="menu-active menu-has-children"><a href="">Manage Documents</a>
+                  <li className=" menu-active menu-has-children"><a href="">TASKS</a>
                     <ul>
                       <li className="menu-active" ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
-                      <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
+                      <li ><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
+                      <li ><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Coverage Documents</a></li>
                     </ul>
                   </li>
                   {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}

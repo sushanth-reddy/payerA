@@ -38,6 +38,7 @@ class Configuration extends Component {
         this.onChangeAuthTokenUrl = this.onChangeAuthTokenUrl.bind(this);
         this.onChangeTokenVerificationUrl = this.onChangeTokenVerificationUrl.bind(this);
         this.onChangeTokenType = this.onChangeTokenType.bind(this);
+        this.onIdChange = this.onIdChange.bind(this);
         this.onSaveConfiguration = this.onSaveConfiguration.bind(this);
         this.resetToDefaults = this.resetToDefaults.bind(this);
         this.onClickLogout = this.onClickLogout.bind(this);
@@ -205,7 +206,7 @@ class Configuration extends Component {
         return (
             <React.Fragment>
                 <div>
-                <header id="inpageheader">
+                    <header id="inpageheader">
                         <div className="">
                             <div id="logo" className="pull-left">
                                 {this.state.currentPayer !== '' &&
@@ -218,16 +219,17 @@ class Configuration extends Component {
 
                             <nav id="nav-menu-container">
                                 <ul className="nav-menu">
-                                    <li className="menu-has-children"><a href="">TASKS</a>
+                                    <li className=" menu-has-children"><a href="">Request</a>
                                         <ul>
                                             <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Documents</a></li>
+                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/care_gaps"}>Request Care Gaps</a></li>
                                         </ul>
                                     </li>
-                                    <li className=" menu-has-children"><a href="">Manage Documents</a>
+                                    <li className=" menu-has-children"><a href="">TASKS</a>
                                         <ul>
                                             <li  ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
                                             <li ><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
+                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Coverage Documents</a></li>
                                         </ul>
                                     </li>
                                     {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}

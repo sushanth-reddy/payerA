@@ -200,6 +200,7 @@ class LoginPage extends React.Component {
         sessionStorage.setItem('config', JSON.stringify(configuration))
         sessionStorage.setItem('npi', config.npi);
         sessionStorage.setItem('isLoggedIn', true);
+        sessionStorage.setItem('payer_id', this.state.payer.id);
         this.props.history.push(sessionStorage.getItem("redirectTo"));
       }).catch((reason) => {
         self.setState({ loading: false, login_error_msg: "Unable to login !! Please try again." });
