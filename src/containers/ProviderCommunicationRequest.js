@@ -1516,7 +1516,7 @@ class ProviderCommunicationRequest extends Component {
                 </div>
                 */}
                             <div className="text-center">
-                                <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
+                                <button type='button' onClick={this.startLoading}>Submit
                       <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
                                         <Loader
                                             type="Oval"
@@ -1526,12 +1526,13 @@ class ProviderCommunicationRequest extends Component {
                                         />
                                     </div>
                                 </button>
-                            </div>
+                            
                             {this.state.dataLoaded &&
                                 <div style={{ textAlign: "center", paddingTop: "5%" }}>
-                                    <p style={{ color: "green" }}>{"Communication Request has been created successfully with id : " + this.state.reqId + "."}</p>
+                                    <p style={{ color: "green" }}>{"Request for Clinical Document has been posted successfully with id : " + this.state.reqId + "."}</p>
                                 </div>
                             }
+                            </div>
                         </div>
                     </main>
                 </div>

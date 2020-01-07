@@ -647,6 +647,7 @@ class PDEXCommunicationHandler extends Component {
         this.setState({ birthDate: "" });
         this.setState({ provider_org: "" });
         this.setState({ payer_org: "" });
+        this.setState({ payloadData: '' });
         this.setState({ contentStrings: [] });
         // console.log("patient_id---------", patient_id, communication_request);
         var tempUrl = this.state.currentPayer.payer_end_point + "/Patient/" + patientId;
@@ -723,10 +724,12 @@ class PDEXCommunicationHandler extends Component {
         // }
         // this.setState({ communicationRequest: communication_request });
         // await this.getObservationDetails();
+        if(communication!==''){
+          await this.getPdeDocumnet(communication).then(() => {
 
-        await this.getPdeDocumnet(communication).then(() => {
-
-        })
+          })
+        }
+        
 
         this.setState({ form_load: true });
       }
@@ -1260,7 +1263,7 @@ class PDEXCommunicationHandler extends Component {
 
                 </div>}
               {this.state.payloadData !== '' &&
-                <div className="form-group col-12"><pre>{JSON.stringify(this.state.payloadData, null, 2)}</pre></div>
+                <div className="form-group"><pre>{JSON.stringify(this.state.payloadData, null, 2)}</pre></div>
 
               }
               {this.state.payloadData !== '' &&

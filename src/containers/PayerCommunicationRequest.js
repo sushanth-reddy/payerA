@@ -838,7 +838,7 @@ class CommunicationRequest extends Component {
                   </button>
                   {this.state.dataLoaded &&
                     <div style={{ textAlign: "center", paddingTop: "5%" }}>
-                      <p style={{ color: "green" }}>{"Communication Request has been created successfully with id : " + this.state.reqId + "."}</p>
+                      <p style={{ color: "green" }}>{"Request for Coverage Document has been posted successfully with id : " + this.state.reqId + "."}</p>
                     </div>
                   }
                 </div>

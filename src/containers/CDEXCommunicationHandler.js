@@ -723,11 +723,14 @@ class CDEXCommunicationHandler extends Component {
                 // }
                 // this.setState({ communicationRequest: communication_request });
                 // await this.getObservationDetails();
-                if (communication.payload[0].extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
-                    await this.getPdeDocumnet(communication).then(() => {
-
-                    })
+                if(communication!==''){
+                    if (communication.payload[0].extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
+                        await this.getPdeDocumnet(communication).then(() => {
+    
+                        })
+                    }
                 }
+               
 
                 this.setState({ form_load: true });
             }
@@ -1229,7 +1232,7 @@ class CDEXCommunicationHandler extends Component {
                                 </table>
                             </div>
                             {this.state.form_load &&
-                                <div className="right-form" style={{ paddingTop: "2%" }} >
+                                <div className="right-form" style={{ paddingTop: "2%", paddingBottom: "100px"}} >
                                     {this.state.patient_name &&
                                         <div className="data-label">
                                             Patient : <span className="data1"><strong>{this.state.patient_name}</strong></span>
@@ -1261,7 +1264,7 @@ class CDEXCommunicationHandler extends Component {
 
                                 </div>}
                             {this.state.payloadData !== '' &&
-                                <div className="form-group col-12"><pre>{JSON.stringify(this.state.payloadData, null, 2)}</pre></div>
+                                <div className="form-group "><pre>{JSON.stringify(this.state.payloadData, null, 2)}</pre></div>
 
                             }
                             {this.state.payloadData !== '' &&

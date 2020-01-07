@@ -1179,7 +1179,7 @@ class TASK extends Component {
             if (response.hasOwnProperty('entry')) {
                 let communicationId = response.entry[0].response.location.split('/')[1]
                 this.setState({ success: true })
-                this.setState({ successMsg: 'Communication has been posted to payer successfully with id - ' + communicationId })
+                this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
                 // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
                 return response
             }
@@ -1543,7 +1543,7 @@ class TASK extends Component {
                             <div>{content}</div>
                         </div>
                         {this.state.form_load &&
-                            <div className="right-form" style={{ paddingTop: "1%" }} >
+                            <div className="right-form" style={{ paddingTop: "1%",paddingBottom:"100px" }} >
                                 <div className="data-label">
                                     Patient : <span className="data1">{this.state.patient_name}</span>
                                 </div>
@@ -1686,7 +1686,8 @@ class TASK extends Component {
                                         {this.state.successMsg}
                                     </div>
                                 }
-                                <button className="submit-btn btn btn-class button-ready" onClick={this.startLoading}>Submit
+                                <div className="text-center">
+                                <button type="button" onClick={this.startLoading}>Submit
                                         <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
                                         <Loader
                                             type="Oval"
@@ -1696,7 +1697,9 @@ class TASK extends Component {
                                         />
                                     </div>
                                 </button>
+
                                 <NotificationContainer />
+                                </div>
                             </div>}
                     </div>
                     </main> 
