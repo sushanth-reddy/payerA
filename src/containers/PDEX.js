@@ -1491,7 +1491,7 @@ class TASK extends Component {
                                 {this.state.currentPayer !== '' &&
                 //   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
 
-                                    <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                                    <h1><a href="/request" className="scrollto">{this.state.payerName}</a></h1>
                                 }
                                 
                             </div>
