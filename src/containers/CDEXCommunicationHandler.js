@@ -1156,7 +1156,7 @@ class CDEXCommunicationHandler extends Component {
                         <div className="form">
 
                             <div className="left-form">
-                                <div><h2>List of Clinical Exchange documents Received</h2></div>
+                                <div><h2> Clinical Exchange documents (Received)</h2></div>
 
                                 <div className="form-row">
                                     {/* <table className="table col-10 offset-1"> */}
@@ -1196,7 +1196,7 @@ class CDEXCommunicationHandler extends Component {
                                     </table>
                                 </div>
                                 <div></div>
-                                <div><h2>List of Clinical Exchange documents Not Received</h2></div>
+                                <div><h2> Clinical Exchange documents (Not-Received)</h2></div>
                                 <table className="table">
                                     <thead>
                                         <tr>

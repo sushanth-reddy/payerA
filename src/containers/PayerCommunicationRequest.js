@@ -274,9 +274,11 @@ class CommunicationRequest extends Component {
     let payersList = await this.getPayerList()
     let payer;
     if (payersList !== undefined) {
+      if (this.state.config !== null) {
       payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
       this.setState({ currentPayer: payer })
       this.setState({ payer_name: payer.payer_name })
+      }
     }
     // console.log(payer, "currentPayer")
 

@@ -18,6 +18,7 @@ import ProviderCommunicationRequest from '../containers/ProviderCommunicationReq
 import { Request } from '../containers/Request';
 import PDEXCommunicationHandler from '../containers/PDEXCommunicationHandler';
 import CDEXCommunicationHandler from '../containers/CDEXCommunicationHandler';
+import CareGaps from '../containers/CareGaps';
 
 library.add(faIgloo,faNotesMedical)
 export default class App extends Component {
@@ -29,7 +30,7 @@ export default class App extends Component {
                     <Route path={"/login"} component={LoginPage} />                    
                     {/* <Route path={"/pdex"} component={PDEX} /> */}
                     <Route path={"/task"} component={TASK} />
-                    {/* <Route path={"/prior_auth"} component={PriorAuthorization} /> */}
+                    <Route path={"/care_gaps"} component={CareGaps} />
                     <Route path={"/payerA"} component={PayerCommunicationRequest} />                    
                     <Route path={"/request"} component={Request} />                    
                     <Route path={"/request_doc"} component={ProviderCommunicationRequest} />                    
