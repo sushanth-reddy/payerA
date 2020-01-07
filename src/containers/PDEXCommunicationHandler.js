@@ -1114,38 +1114,38 @@ class PDEXCommunicationHandler extends Component {
         <div>
           <header id="inpageheader">
             <div className="">
-
               <div id="logo" className="pull-left">
                 {this.state.currentPayer !== '' &&
-                  <h1><img style={{ height: "60px", marginTop: "-13px" }} src={logo} /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                  //   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+
+                  <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                 }
-                {/* <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a> */}
+
               </div>
 
               <nav id="nav-menu-container">
                 <ul className="nav-menu">
-                  <li className="menu-active menu-has-children"><a href="">List Of  documents</a>
+                  <li className="menu-has-children"><a href="">TASKS</a>
                     <ul>
-                      <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Payer data exchange</a></li>
-                      <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical data exchange</a></li>
+                      <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
+                      <li ><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Documents</a></li>
                     </ul>
                   </li>
-                  <li><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for Document</a></li>
-                  <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>TASK</a></li>
-                  <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
-
-                  {/* <li className="menu-active menu-has-children"><a href="">Services</a>
+                  <li className="menu-active menu-has-children"><a href="">Manage Documents</a>
                     <ul>
-                      <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/provider_request"}>Prior Auth Submit</a></li>
-                      <li><a href={window.location.protocol + "//" + window.location.host + "/mips"}>MIPS Score</a></li>
+                      <li className="menu-active" ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
+                      <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
                     </ul>
-                  </li> */}
-                  {/* <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li> */}
-                  {/* <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>
+                  </li>
+                  {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}
+                  {/* <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>Task</a></li> */}
+                  <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
+                  <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>
                     <ul>
                       <li><a href="" onClick={this.onClickLogout}>Logout</a></li>
                     </ul>
-                  </li> */}
+                  </li>
+
                 </ul>
               </nav>
             </div>

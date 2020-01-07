@@ -1359,22 +1359,22 @@ class ProviderCommunicationRequest extends Component {
                             </div> */}
                             <div className="form-row">
                                 <div className="form-group col-3 offset-1">
-                                    <h4 className="title">Select Payload type*</h4>
+                                    <h4 className="title">Document type*</h4>
                                 </div>
                                 <div class="form-check form-check-inline">
                                     <input type="checkbox" class="form-check-input" id="Check1" checked={this.state.isClinicalNote} onChange={this.updateDoc} />
-                                    <label class="form-check-label" for="Check1">Clinical Note</label>
+                                    <label class="form-check-label" for="Check1">Clinical Notes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
                                     {/* <input type="checkbox" checked={this.state.isClinicalNote} onChange={this.updateDoc} /> Clinical Note */}
                                     <input type="checkbox" class="form-check-input" id="Check2" checked={this.state.isDataElement} onChange={this.updateDataElement} />
-                                    <label class="form-check-label" for="Check2">Data Elements</label>
+                                    <label class="form-check-label" for="Check2">FHIR Resources</label>
                                 </div>
                             </div>
                             {this.state.isClinicalNote &&
                                 <div className="form-row">
                                     <div className="form-group col-3 offset-1">
-                                        <h4 className="title">Clinical Note*</h4>
+                                        <h4 className="title">Clinical Notes*</h4>
                                     </div>
                                     <div className="form-group col-8">
                                         <DropdownDocument elementName="documents" updateCB={this.updateStateElement} />
@@ -1403,9 +1403,23 @@ class ProviderCommunicationRequest extends Component {
                                                         <div className="form-group col-12" style={{ paddingTop: "13px" }}>
                                                             <div className="form-row">
                                                                 <a id={idx} onClick={() => this.onRemoveQuery(idx)} className="close-thik" />
+                                                                <div className="form-group col-4" >
+                                                                    <span className="title-small" htmlFor={searchStrId} >Resource Type</span>
+                                                                    <input type="text" name="resource" id={idx} placeholder="Resource Type" className="resource" className="form-control"
+                                                                        onChange={this.handleChange} value={val.resource}
+                                                                    />
+                                                                    {/* <label htmlFor={searchStrId}>Resource</label> */}
+                                                                    {/* <Input
+                                                            type="text"
+                                                            name="resource"
+                                                            id={idx}
+                                                            className="resource"
+                                                            onChange={this.handleChange}
+                                                        /> */}
+                                                                </div>
                                                                 <div className="form-group col-4"  >
 
-                                                                    <span className="title-small" htmlFor={QueryId} >{`Query #${idx + 1}`}</span>
+                                                                    <span className="title-small" htmlFor={QueryId} >{`Query`}</span>
                                                                     <input type="text" name="query" id={idx} placeholder="Query" className="query" className="form-control"
                                                                         onChange={this.handleChange} value={val.query}
                                                                     />
@@ -1431,20 +1445,7 @@ class ProviderCommunicationRequest extends Component {
                                                             onChange={this.handleChange}
                                                         /> */}
                                                                 </div>
-                                                                <div className="form-group col-4" >
-                                                                    <span className="title-small" htmlFor={searchStrId} >Resource Type</span>
-                                                                    <input type="text" name="resource" id={idx} placeholder="Resource Type" className="resource" className="form-control"
-                                                                        onChange={this.handleChange} value={val.resource}
-                                                                    />
-                                                                    {/* <label htmlFor={searchStrId}>Resource</label> */}
-                                                                    {/* <Input
-                                                            type="text"
-                                                            name="resource"
-                                                            id={idx}
-                                                            className="resource"
-                                                            onChange={this.handleChange}
-                                                        /> */}
-                                                                </div>
+                                                                
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1491,7 +1492,7 @@ class ProviderCommunicationRequest extends Component {
                                 {this.state.isDataElement &&
                                     <div className="form-row">
                                         <div className="form-group col-3 offset-1">
-                                            <h4 className="title">Data Element Time period</h4>
+                                            <h4 className="title">FHIR Resource Time period</h4>
                                         </div>
                                         <div className="form-group col-8">
                                             <DatetimeRangePicker onChange={this.updatePayloadtimePeriod} startDate={this.state.payloadStartDate} endDate={this.state.payloadEndDate} />
