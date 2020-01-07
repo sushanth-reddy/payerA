@@ -1027,7 +1027,7 @@ class ProviderCommunicationRequest extends Component {
                                 }
                             ],
                             "subject": {
-                                "reference": "Patient?given=" + patientObj.given + "&family=" + patientObj.family + "&address-postalcode=" + patientObj.postalCode + "&birthdate=" + patientObj.birthDate
+                                "reference": "Patient?identifier=" + this.state.patientResource.identifier[0].value
                             },
                             "requester": {
                                 // "reference": "Organization?identifier=" + this.state.payerId
@@ -1254,7 +1254,7 @@ class ProviderCommunicationRequest extends Component {
                     </div>
                 </header> */}
                     <main id="main" >
-                        <div className="form">
+                <div className="form" style={{paddingBottom:"100px"}}>
                             {/* <div>
                                 <div className="header">
                                     Practitioner NPI*

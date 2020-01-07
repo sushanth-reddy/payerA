@@ -198,19 +198,22 @@ class TASK extends Component {
         this.setState({ payerName: payer.payer_name })
         // sessionStorage.setItem('requesterPayer', JSON.stringify(requesterPayer))
 
-        let resp = await this.getCommunicationRequests('sender.identifier=' + payer.payer_identifier);
+        let resp = await this.getCommunicationRequests('');
         // console.log("resp------", resp);
         if (resp != undefined) {
             if (resp.entry != undefined) {
                 Object.keys(resp.entry).forEach((key) => {
                     if (resp.entry[key].resource != undefined) {
-                        if (resp.entry[key].resource.hasOwnProperty('payload')) {
+                        if (resp.entry[key].resource.hasOwnProperty('payload') && resp.entry[key].resource.payload.length > 0){
+                            if (resp.entry[key].resource.payload[0].hasOwnProperty('extension') && resp.entry[key].resource.payload[0].extension.length > 0){
+
                             if (resp.entry[key].resource.payload[0].extension[0].hasOwnProperty('valueCodeableConcept')) {
                                 console.log(resp.entry[key].resource.payload[0].extension[0].valueCodeableConcept.coding[0].code, '----------')
                                 if (resp.entry[key].resource.payload[0].extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
                                     resources.push(resp.entry[key].resource);
                                 }
                             }
+			    }
                         }
 
                     }
@@ -327,7 +330,7 @@ class TASK extends Component {
         //     // console.log('The token is : ', token, tempUrl);
         //     headers['Authorization'] = 'Bearer ' + token
         // }
-        const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?" + searchParams + "&_count=100000", {
+        const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?_count=100000", {
             method: "GET",
             headers: headers
         }).then(response => {
@@ -399,7 +402,7 @@ class TASK extends Component {
         // f = null;
         // this.setState({ files: f });
         // console.log(this.state.files)
-        var tempUrl = this.state.fhir_url + "/" + patient_id;
+        var tempUrl = this.state.fhir_url + "/Patient/132226";
         let token;
         // const token = await this.getToken(config.payerB.grant_type, config.payerB.client_id, config.payerB.client_secret);
 
@@ -1109,7 +1112,7 @@ class TASK extends Component {
                     // "contained": communicationRequest.contained,
                     "basedOn": [
                         {
-                            'reference': this.state.communicationRequest.resourceType + "?identifier=" + this.state.communicationRequest.identifier[0].value
+                            'reference': this.state.communicationRequest.resourceType + "/" + this.state.communicationRequest.id
                         }
                     ],
                     "identifier": [
@@ -1129,12 +1132,14 @@ class TASK extends Component {
 
             ]
         }
+	commJson.entry.push({"resource":this.state.communicationRequest,
+			     "request":{"method":"POST","url":"CommunicationRequest"}})
         commJson.entry.push({
             'resource': this.state.patient,
             'request': {
                 "method": "POST",
                 "url": "Patient",
-                "ifNoneExist": "identifier=" + this.state.patient.identifier[0].value
+                "ifNoneExist": "_id=" + this.state.patient.id
             }
         })
         commJson.entry.push({
@@ -1142,7 +1147,7 @@ class TASK extends Component {
             'request': {
                 "method": "POST",
                 "url": "Organization",
-                "ifNoneExist": "identifier=" + this.state.requesterOrganization.identifier[0].value
+                "ifNoneExist": "_id=" + this.state.requesterOrganization.id
             }
         })
         commJson.entry.push({
@@ -1150,7 +1155,7 @@ class TASK extends Component {
             'request': {
                 "method": "POST",
                 "url": "Organization",
-                "ifNoneExist": "identifier=" + this.state.senderOrganization.identifier[0].value
+                "ifNoneExist": "_id=" + this.state.senderOrganization.id
             }
         })
 
@@ -1493,9 +1498,9 @@ class TASK extends Component {
                         <div className="">
                             <div id="logo" className="pull-left">
                                 {this.state.currentPayer !== '' &&
-                //   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
 
-                                    <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                                  //  <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                                 }
                                 
                             </div>
