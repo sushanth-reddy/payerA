@@ -381,6 +381,7 @@ class TASK extends Component {
     }
     async getPatientDetails(patient_id, patient_resource, collectionBundle, communication_request) {
         console.log("Collection Bundle----", collectionBundle);
+        this.setState({"collectionBundleId":collectionBundle.id})
         if (communication_request.hasOwnProperty('payload')) {
             await this.getDocuments(communication_request['payload']);
         }
@@ -517,14 +518,16 @@ class TASK extends Component {
                 referenceArray.push({ resource: procedure })
             }
             if (object.hasOwnProperty('encounter')) {
-                let encounter = await this.getResources(object.encounter.reference)
-                if (encounter.hasOwnProperty('participant')) {
-                    if (encounter.participant[0].hasOwnProperty('individual')) {
-                        let practitioner = await this.getResources(encounter.participant[0].individual.reference)
-                        referenceArray.push({ resource: practitioner })
-                    }
-                }
-                referenceArray.push({ resource: encounter })
+                await this.getResources(object.encounter.reference).then((encounter)=>{
+                    referenceArray.push({ resource: encounter })
+                })
+                // if (encounter.hasOwnProperty('participant')) {
+                //     if (encounter.participant[0].hasOwnProperty('individual')) {
+                //         let practitioner = await this.getResources(encounter.participant[0].individual.reference)
+                //         referenceArray.push({ resource: practitioner })
+                //     }
+                // }
+                
             }
             if (object.hasOwnProperty('insurance')) {
                 if (object.insurance[0].hasOwnProperty('coverage')) {
@@ -540,15 +543,15 @@ class TASK extends Component {
         }
         else if (resource === "CarePlan") {
             if (object.hasOwnProperty('encounter')) {
-                let encounter = this.getResources(object.encounter.reference)
-                if (encounter.hasOwnProperty('participant')) {
-                    if (encounter.participant[0].hasOwnProperty('individual')) {
-                        let practitioner = await this.getResources(encounter.participant[0].individual.reference)
-                        referenceArray.push({ resource: practitioner })
-                    }
-                }
-
-                referenceArray.push({ resource: encounter })
+                await this.getResources(object.encounter.reference).then((encounter)=>{
+                    referenceArray.push({ resource: encounter })
+                })
+                // if (encounter.hasOwnProperty('participant')) {
+                //     if (encounter.participant[0].hasOwnProperty('individual')) {
+                //         let practitioner = await this.getResources(encounter.participant[0].individual.reference)
+                //         referenceArray.push({ resource: practitioner })
+                //     }
+                // }
             }
             if (object.hasOwnProperty('careTeam')) {
                 let careTeam = await this.getResources(object.careTeam[0].reference)
@@ -1063,11 +1066,6 @@ class TASK extends Component {
                         }
                     ],
                     "payload": payload
-                },
-                "request": {
-                    'method': "POST",
-                    "url": "Communication",
-                    "ifNoneExist": "identifier=" + this.state.communicationIdentifier
                 }
             }
 
@@ -1098,7 +1096,8 @@ class TASK extends Component {
         //     headers['Authorization'] = 'Bearer ' + token
         // }
         var communicationUrl = this.state.endpoint.address;
-
+        console.log("")
+        console.log("Comm request json---",JSON.stringify(commJson));
         let requesterCommunication = await fetch(communicationUrl+"/Bundle", {
             method: "POST",
             headers: headers,
@@ -1319,7 +1318,8 @@ class TASK extends Component {
                 const endpoint = await fetch(tempUrl + "/" + recipientResponse.endpoint[0].reference, {
                     method: "GET",
                     headers: {
-                        "Content-Type": "application/json",
+                        "Content-Type": "application/json"
+                        
                         // 'Authorization': 'Bearer ' + token
                     }
                 }).then(response => {
