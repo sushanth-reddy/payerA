@@ -42,7 +42,7 @@ class TASK extends Component {
             loading: false,
             patient_name: "",
             docs_required: [],
-            sender_resource: '',
+            requester_org: '',
             sender_name: '',
             files: [],
             contentStrings: [],
@@ -91,10 +91,13 @@ class TASK extends Component {
             endpoint: '',
             show: false,
             currentPayer: '',
+            bundleResources: [],
+            reviewError: false,
+            reviewErrorMsg: "",
+            collectionBundleId:""
         };
         this.goTo = this.goTo.bind(this);
         this.getCommunicationRequests = this.getCommunicationRequests.bind(this);
-        this.displayCommunicataionRequests = this.displayCommunicataionRequests.bind(this);
         this.getPatientDetails = this.getPatientDetails.bind(this);
         this.getSenderDetails = this.getSenderDetails.bind(this);
         this.getSenderResource = this.getSenderResource.bind(this);
@@ -185,39 +188,45 @@ class TASK extends Component {
         }
         let resources = [];
         let payersList = await this.getPayerList()
-        console.log(this.state.config, 'ooo', payersList)
         let payer;
-        console.log(this.state.config.payer_id, "currentPayer")
-
-        if (this.state.config.hasOwnProperty('payer_id')) {
+        if (this.state.config !== null) {
             payer = payersList.find(payer => payer.id === parseInt(this.state.config.payer_id));
         }
         this.setState({ fhir_url: payer.payer_end_point })
         this.setState({ currentPayer: payer })
         this.setState({ requesterIdentifier: payer.payer_identifier })
         this.setState({ payerName: payer.payer_name })
-        // sessionStorage.setItem('requesterPayer', JSON.stringify(requesterPayer))
-
-        let resp = await this.getCommunicationRequests('');
-        // console.log("resp------", resp);
-        if (resp != undefined) {
-            if (resp.entry != undefined) {
-                Object.keys(resp.entry).forEach((key) => {
-                    if (resp.entry[key].resource != undefined) {
-                        if (resp.entry[key].resource.hasOwnProperty('payload') && resp.entry[key].resource.payload.length > 0){
-                            if (resp.entry[key].resource.payload[0].hasOwnProperty('extension') && resp.entry[key].resource.payload[0].extension.length > 0){
-
-                            if (resp.entry[key].resource.payload[0].extension[0].hasOwnProperty('valueCodeableConcept')) {
-                                console.log(resp.entry[key].resource.payload[0].extension[0].valueCodeableConcept.coding[0].code, '----------')
-                                if (resp.entry[key].resource.payload[0].extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
-                                    resources.push(resp.entry[key].resource);
-                                }
+        let bundleResources = this.state.bundleResources;
+        let response = await this.getCommunicationRequests('');
+        console.log("response after wait---" + response);
+        if (response !== undefined) {
+            //search bundle entry
+            console.log("response not undefined--" + response);
+            if (response.hasOwnProperty('entry')) {
+                response.entry.map((e, k) => {
+                    //entry of bundle with type collection
+                    if (e.resource.hasOwnProperty('entry')) {
+                        e.resource.entry.map((entry, k) => {
+                            // console.log("Resource---",entry.resource,"resource id---",entry.id);
+                            //if entry has payload as key in its resource
+                            this.setState()
+                            if (entry.resource.resourceType === 'CommunicationRequest' && entry.resource.hasOwnProperty('payload')) {
+                                entry.resource.payload.map((p) => {
+                                    if (p.hasOwnProperty('extension')) {
+                                        if (p.extension[0].hasOwnProperty('valueCodeableConcept')) {
+                                            if (p.extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
+                                                console.log(e.resource, 'yes its the bundle')
+                                                resources.push(entry.resource)
+                                                bundleResources.push(e.resource)
+                                                this.setState({ bundleResources });
+                                            }
+                                        }
+                                    }
+                                })
                             }
-			    }
-                        }
-
+                        })
                     }
-                });
+                })
             }
         }
         else {
@@ -225,7 +234,6 @@ class TASK extends Component {
         }
         console.log("-------", resources);
         this.setState({ comm_req: resources });
-        // this.displayCommunicataionRequests();
     }
     showBundlePreview() {
         let show = this.state.show;
@@ -241,6 +249,21 @@ class TASK extends Component {
         }
         return -1;
 
+    }
+
+    getResourceFromBundle(bundle, resourceType, id = false) {
+        var filtered_entry = bundle.entry.find(function (entry) {
+            if (entry.resource !== undefined) {
+                if (id !== false) {
+                    return entry.resource.id === id;
+                }
+                return entry.resource.resourceType === resourceType;
+            }
+        });
+        if (filtered_entry !== undefined) {
+            return filtered_entry.resource;
+        }
+        return null
     }
 
     onDrop(files) {
@@ -330,60 +353,41 @@ class TASK extends Component {
         //     // console.log('The token is : ', token, tempUrl);
         //     headers['Authorization'] = 'Bearer ' + token
         // }
-        const fhirResponse = await fetch(tempUrl + "/CommunicationRequest?_count=100000", {
+        const fhirResponse = await fetch(tempUrl + "/Bundle?type=collection&_count=100000", {
             method: "GET",
             headers: headers
         }).then(response => {
-            // console.log("Recieved response", response);
+            console.log("Recieved response", response);
             return response.json();
         }).then((response) => {
-            // console.log("----------response", response);
-            return response;
+            console.log("----------response", response);
+            if (response.resourceType === "Bundle" && response.hasOwnProperty("entry")) {
+                return response;
+            } else {
+                return null;
+            }
         }).catch(reason =>
             console.log("No response recieved from the server", reason)
         );
         return fhirResponse;
     }
 
-    async displayCommunicataionRequests() {
-        let resources = [];
-        let resp = await this.getCommunicationRequests();
-        // console.log("resp------", resp);
-        if (resp != undefined) {
-            if (resp.entry != undefined) {
-                Object.keys(resp.entry).forEach((key) => {
-                    if (resp.entry[key].resource != undefined) {
-                        if (resp.entry[key].resource.hasOwnProperty('payload')) {
-                            if (resp.entry[key].resource.payload[0].extension[0].hasOwnProperty('valueCodeableConcept')) {
-                                console.log(resp.entry[key].resource.payload[0].extension[0].valueCodeableConcept.coding[0].code, '----------')
-                                if (resp.entry[key].resource.payload[0].extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
-                                    resources.push(resp.entry[key].resource);
-                                }
-                            }
-                        }
-
-                    }
-                });
-            }
-        }
-        else {
-            console.log('no communications')
-        }
-        // console.log("-------", resources);
-        this.setState({ comm_req: resources });
-    }
     async getCarePlans() {
         let carePlanResources = await this.getResources('CarePlan?status=active&subject=' + this.state.patient.id).then((resource) => {
             if (resource.hasOwnProperty('entry')) {
                 this.setState({ carePlanResources: resource.entry })
             }
-
         })
-        // console.log(carePlanResources, 'resources')
     }
-    async getPatientDetails(patient_id, communication_request, identifier) {
+    async getPatientDetails(patient_id, patient_resource, collectionBundle, communication_request) {
+        console.log("Collection Bundle----", collectionBundle);
+        if (communication_request.hasOwnProperty('payload')) {
+            await this.getDocuments(communication_request['payload']);
+        }
         this.setState({ patient_name: "" });
-        this.setState({ sender_resource: "" });
+        this.setState({ reviewError: false });
+        this.setState({ reviewErrorMsg: "" });
+        this.setState({ requester_org: "" });
         this.setState({ sender_name: "" });
         this.setState({ observationList: [] });
         this.setState({ check: false });
@@ -397,111 +401,64 @@ class TASK extends Component {
         this.setState({ success: false })
         this.setState({ documentList: [] })
         this.setState({ files: [] })
-
-        // let f = this.state.files;
-        // f = null;
-        // this.setState({ files: f });
-        // console.log(this.state.files)
-        var tempUrl = this.state.fhir_url + "/Patient/132226";
-        let token;
-        // const token = await this.getToken(config.payerB.grant_type, config.payerB.client_id, config.payerB.client_secret);
-
-        // const token = await createToken(this.state.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-        let headers = {
-            "Content-Type": "application/json",
-        }
-        // if (config.payerB.authorized_fhir) {
-        //     headers['Authorization'] = 'Bearer ' + token
-        // }
-        let patient = await fetch(tempUrl, {
-            method: "GET",
-            headers: headers
-        }).then(response => {
-            return response.json();
-        }).then((response) => {
-            // console.log("----------response", response);
-            let patient = response;
-            console.log("patient---", patient);
-            if (patient) {
-                this.setState({ patient: patient });
-                if (patient.hasOwnProperty("name")) {
-                    var name = '';
-                    if (patient['name'][0].hasOwnProperty('given')) {
-                        // patient['name'][0]['given'].map((n) => {
-                        //     name += ' ' + n;
-                        // });
-
-                        name = patient['name'][0]['given'][0] + " " + patient['name'][0]['family'];
-                        console.log("name---" + name);
-                        this.setState({ patient_name: name })
-                    }
+        let patient_identifier = null
+        if (patient_resource.hasOwnProperty("identifier")) {
+            patient_identifier = patient_resource.identifier.find(function (ident) {
+                if (ident.system === "http://hospital.smarthealthit.org") {
+                    return ident.value;
                 }
-                // console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
+            })
+        }
+        console.log("Patientidentifier---", patient_identifier);
+        if (patient_identifier === null || patient_identifier === undefined) {
+            this.setState({ "reviewError": true })
+            this.setState({ "reviewErrorMsg": "Patient should contain identifier with system 'http://hospital.smarthealthit.org'" })
+        } else {
+            var tempUrl = this.state.fhir_url + "/Patient?identifier=" + patient_identifier.value;
+            let token;
+            // const token = await createToken(this.state.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+            let headers = {
+                "Content-Type": "application/json",
             }
-        }).catch(reason =>
-            console.log("No response recieved from the server", reason)
-        );
-        // console.log("patient---", patient);
-        // if (patient) {
-        //     this.setState({ patient: patient });
-        //     if (patient.hasOwnProperty("name")) {
-        //         var name = '';
-        //         if (patient['name'][0].hasOwnProperty('given')) {
-        //             // patient['name'][0]['given'].map((n) => {
-        //             //     name += ' ' + n;
-        //             // });
-
-        //             name = patient['name'][0]['given'][0] + patient['name'][0]['family'];
-        //             console.log("name---"+name);
-        //             this.setState({ patient_name: name })
-        //         }
-        //     }
-        //     // console.log("patient name----------", this.state.patient_name);
-        // }
-        // console.log("state patient-------", this.state.patient);
-        await this.getCarePlans().then(() => {
-
-        })
-        if (communication_request.hasOwnProperty('sender')) {
-            let s = await this.getSenderDetails(communication_request, token);
+            await fetch(tempUrl, {
+                method: "GET",
+                headers: headers
+            }).then(response => {
+                return response.json();
+            }).then((response) => {
+                // console.log("----------response", response);
+                let patient = null;
+                if (response.hasOwnProperty("entry") && response.entry.length > 0) {
+                    patient = response.entry[0].resource;
+                }
+                console.log("patient---", patient);
+                if (patient !== null) {
+                    this.setState({ patient: patient });
+                    if (patient.hasOwnProperty("name")) {
+                        var name = '';
+                        if (patient['name'][0].hasOwnProperty('given')) {
+                            name = patient['name'][0]['given'][0] + " " + patient['name'][0]['family'];
+                            console.log("name---" + name);
+                            this.setState({ patient_name: name })
+                        }
+                    }
+                    if (communication_request.hasOwnProperty('authoredOn')) {
+                        this.setState({ recievedDate: communication_request.authoredOn })
+                    }
+                    this.setState({ communicationRequest: communication_request });
+                    this.getObservationDetails(communication_request, collectionBundle).then(() => {
+                        this.showError()
+                    })
+                    // console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
+                } else {
+                    this.setState({ "reviewError": true })
+                    this.setState({ "reviewErrorMsg": "Patient with identifier " + patient_identifier + " was not found" })
+                }
+            }).catch(reason =>
+                console.log("No response recieved from the server", reason)
+            );
+            this.setState({ form_load: true });
         }
-        if (communication_request.hasOwnProperty('payload')) {
-            await this.getDocuments(communication_request['payload']);
-        }
-        if (communication_request.hasOwnProperty('occurrencePeriod')) {
-            // await this.getDocuments(communication_request['payload']);
-            this.setState({ startDate: communication_request.occurrencePeriod.start })
-            this.setState({ endDate: communication_request.occurrencePeriod.end })
-        }
-        if (communication_request.hasOwnProperty('authoredOn')) {
-            this.setState({ recievedDate: communication_request.authoredOn })
-        }
-        this.setState({ communicationRequest: communication_request });
-        // communication_request.payload.map(async (p)=>{
-        //     if(p.hasOwnProperty('extension')){
-        //         console.log(p,'pp')
-        //         if(p.extension[0].hasOwnProperty('valueString')){
-        //             console.log('here-123')
-        //             await this.getObservationDetails(p.extension[0].valueString);
-        //         }
-
-        //     }
-        // })
-
-        await this.getObservationDetails().then(() => {
-            this.showError()
-        })
-        // await this.getCarePlans().then(() => {
-
-        // })
-        // await this.getObservationDetails().then(() => {
-        //     // this.showError()
-        // })
-
-        // await this.getClinicalNoteDetails()
-
-
-        this.setState({ form_load: true });
     }
     randomString() {
         var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
@@ -584,13 +541,13 @@ class TASK extends Component {
         else if (resource === "CarePlan") {
             if (object.hasOwnProperty('encounter')) {
                 let encounter = this.getResources(object.encounter.reference)
-                    if (encounter.hasOwnProperty('participant')) {
-                        if (encounter.participant[0].hasOwnProperty('individual')) {
-                            let practitioner = await this.getResources(encounter.participant[0].individual.reference)
-                            referenceArray.push({ resource: practitioner })
-                        }
+                if (encounter.hasOwnProperty('participant')) {
+                    if (encounter.participant[0].hasOwnProperty('individual')) {
+                        let practitioner = await this.getResources(encounter.participant[0].individual.reference)
+                        referenceArray.push({ resource: practitioner })
                     }
-                
+                }
+
                 referenceArray.push({ resource: encounter })
             }
             if (object.hasOwnProperty('careTeam')) {
@@ -632,21 +589,9 @@ class TASK extends Component {
     }
 
 
-    async getObservationDetails() {
-        // let searchParameter = this.state.searchParameter;
-        // console.log(searchParameter,'search')
-        let communicationRequest = this.state.communicationRequest
-        let practitionerResource = ''
-        if (this.state.patient.hasOwnProperty('generalPractitioner')) {
-            practitionerResource = await this.getResources(this.state.patient.generalPractitioner[0].reference)
-        }
-        let payload = communicationRequest.payload
-        let code;
+    async getObservationDetails(communication_request, collectionBundle) {
         var date = new Date()
         var currentDateTime = date.toISOString()
-        let patientId = communicationRequest.subject.reference
-        let dateParameter;
-        let valueString;
         let Bundle = this.state.bundle
         let compositionJson = {
             "resourceType": "Composition",
@@ -669,197 +614,203 @@ class TASK extends Component {
             "event": [],
             "section": []
         }
+
+        let sender_org_id = ""
+        let sender_org = {}
+        if (communication_request.hasOwnProperty("sender")) {
+            let sender_org_ref = communication_request.sender.reference;
+            sender_org_id = sender_org_ref.split("/")[1]
+            sender_org = this.getResourceFromBundle(collectionBundle, "Organization", sender_org_id)
+            console.log("Sender Org---", sender_org);
+            this.setState({senderOrganization: sender_org});
+        }
+        if (sender_org_id !== "") {
+            compositionJson.author.push({ "reference": "Organization/" + sender_org_id })
+        }
+        if (sender_org) {
+            Bundle.entry.push({ "resource": sender_org });
+            let endpoint = ""
+            let endpoint_id = ""
+            let endpoint_resource = {}
+            this.setState({ "sender_name": sender_org.name });
+            if (sender_org.hasOwnProperty("endpoint")) {
+                endpoint = sender_org.endpoint
+                endpoint_id = endpoint[0].reference.split("/")[1]
+                console.log("Endpoint id---",sender_org.endpoint);
+                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+                if (endpoint_resource) {
+                    console.log("Endpoint---",endpoint_resource);
+                    Bundle.entry.push({ "resource": endpoint_resource });
+                }
+            }
+        }
+
+        let requester_org_id = ""
+        let requester_org = {}
+        if (communication_request.hasOwnProperty("requester")) {
+            let requester_org_ref = communication_request.requester.reference;
+            requester_org_id = requester_org_ref.split("/")[1]
+            requester_org = this.getResourceFromBundle(collectionBundle, "Organization", requester_org_id)
+            console.log("Requester Org---", requester_org);
+            this.setState({"requesterOrganization":requester_org});
+        }
+        if (requester_org) {
+            console.log("Inside if requestor---")
+            let endpoint = ""
+            let endpoint_id = ""
+            let endpoint_resource = {}
+            this.setState({ "sender_name": requester_org.name });
+            if (requester_org.hasOwnProperty("endpoint")) {
+                endpoint = requester_org.endpoint
+                endpoint_id = endpoint[0].reference.split("/")[1]
+                console.log("Endpoint id---",requester_org.endpoint);
+                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+                if (endpoint_resource) {
+                    console.log("Endpoint---",endpoint_resource);
+                    Bundle.entry.push({ "resource": endpoint_resource });
+                    this.setState({"endpoint":endpoint_resource});
+                }
+            } else {
+                this.setState({ "reviewError": true })
+                this.setState({ "reviewErrorMsg": "There is no endpoint defined in requester!!" })
+            }
+
+            Bundle.entry.push({ "resource": requester_org });
+
+        }
+
         var arr = []
-        var conditionsArray = []
         let conditionResource = ''
         var claims = ''
         let claim = ''
         let claimResponse = ''
-        let carePlanResources = await this.getResources('CarePlan?status=active&subject=' + this.state.patient.id).then((response) => {
-            if (response.hasOwnProperty('entry')) {
-                this.setState({ carePlanResources: response.entry })
-
-            }
-        })
-
-        // let carePlanResources = this.state.carePlanResources
-        // this.setState({carePlanResources:carePlanResources})
-        // console.log(carePlanResources.entry[0], 'resources')
-        if (this.state.carePlanResources !== '') {
-
-            this.state.carePlanResources.map(async (c, key) => {
-                console.log(c, 'police')
-                if (c.resource.hasOwnProperty('activity')) {
-                    c.resource.activity.map((act) => {
-                        if (act.hasOwnProperty('detial')) {
-                            if (act.detail.hasOwnProperty('reasonReference')) {
-                                if (act.detail.reasonReference.reference.indexOf('Condition') > -1) {
-                                    arr.push(act.detail.reasonReference.reference)
-                                }
-                            }
-                        }
-                    })
-                }
-                if (c.resource.hasOwnProperty('addresses')) {
-                    c.resource.addresses.map((address => {
-                        arr.push(address.reference)
-                    }))
-                }
-                let ref = await this.getReferences(c.resource, 'CarePlan')
-                ref.map((r) => {
-                    Bundle.entry.push(r)
-                })
-                conditionResource = await this.getResources(arr[0])
-                // if (arr.length > 0) {
-                //     conditionsArray.push(await this.getResources(arr[0]))
-                // }
-                claims = await this.getResources('Claim?patient=' + this.state.patient.id)
-                if (claims.hasOwnProperty('entry')) {
-                    claims.entry.map((c) => {
-                        if (c.resource.hasOwnProperty('diagnosis')) {
-                            if (c.resource.diagnosis[0].hasOwnProperty("diagnosisReference")) {
-                                if (c.resource.diagnosis[0].diagnosisReference.reference === arr[0]) {
-                                    claim = c.resource
-                                }
-                            }
-                        }
-                    })
-                }
-                if (claim !== '') {
-                    let cr = await this.getResources('ClaimResponse?request=' + claim.id)
-                    if (cr.hasOwnProperty('entry')) {
-                        claimResponse = cr.entry[0].resource
-                    }
-                    let ref = await this.getReferences(claim, 'Claim')
-                    ref.map((r) => {
-                        Bundle.entry.push(r)
-                    })
-                }
-                Bundle.entry.push({ resource: this.state.patient })
-
-                Bundle.entry.push({ resource: practitionerResource })
-
-
-                console.log('1234', conditionResource, claim, claimResponse, 'conditionsArray')
-
-
-                compositionJson.section.push(
-                    {
-                        "code": {
-                            "coding": [
-                                {
-                                    "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
-                                    "code": "activeTreatment"
-                                }
-                            ]
-                        },
-                        "section": [
-                            {
-                                "code": {
-                                    "coding": [
-                                        {
-                                            "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
-                                            "code": "treatment"
+        await this.getResources('CarePlan?status=active&subject=' + this.state.patient.id)
+            .then((response) => {
+                if (response.hasOwnProperty('entry')) {
+                    let carePlanResources = response.entry;
+                    this.setState({ carePlanResources: response.entry })
+                    if (carePlanResources !== '') {
+                        carePlanResources.map(async (c, key) => {
+                            console.log(c, 'care paln resource')
+                            if (c.resource.hasOwnProperty('activity')) {
+                                c.resource.activity.map((act) => {
+                                    if (act.hasOwnProperty('detial')) {
+                                        if (act.detail.hasOwnProperty('reasonReference')) {
+                                            if (act.detail.reasonReference.reference.indexOf('Condition') > -1) {
+                                                arr.push(act.detail.reasonReference.reference)
+                                            }
                                         }
-                                    ]
-                                },
-                                "entry": [
-                                    {
-                                        "reference": "CarePlan/" + c.resource.id
                                     }
-                                ]
-                            },
+                                })
+                            }
+                            if (c.resource.hasOwnProperty('addresses')) {
+                                c.resource.addresses.map((address => {
+                                    arr.push(address.reference)
+                                }))
+                            }
+                            let ref = await this.getReferences(c.resource, 'CarePlan')
+                            ref.map((r) => {
+                                Bundle.entry.push(r)
+                            })
+                            conditionResource = await this.getResources(arr[0])
 
-                        ]
-                    }
-                )
-                if (claim !== '' && claimResponse !== '') {
-
-
-                    compositionJson.section[key].section.push(
-                        {
-                            "code": {
-                                "coding": [
-                                    {
-                                        "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
-                                        "code": "priorCoverage"
+                            claims = await this.getResources('Claim?patient=' + this.state.patient.id)
+                            if (claims.hasOwnProperty('entry')) {
+                                claims.entry.map((c) => {
+                                    if (c.resource.hasOwnProperty('diagnosis')) {
+                                        if (c.resource.diagnosis[0].hasOwnProperty("diagnosisReference")) {
+                                            if (c.resource.diagnosis[0].diagnosisReference.reference === arr[0]) {
+                                                claim = c.resource
+                                            }
+                                        }
                                     }
-                                ]
-                            },
-                            "entry": [
-                                {
-                                    "reference": "Claim/" + claim.id
-                                },
-                                {
-                                    "reference": "ClaimResponse/" + claimResponse.id
+                                })
+                            }
+                            if (claim !== '') {
+                                let cr = await this.getResources('ClaimResponse?request=' + claim.id)
+                                if (cr.hasOwnProperty('entry')) {
+                                    claimResponse = cr.entry[0].resource
                                 }
-                            ]
-                        }
-                    )
+                                let ref = await this.getReferences(claim, 'Claim')
+                                ref.map((r) => {
+                                    Bundle.entry.push(r)
+                                })
+                            }
+                            Bundle.entry.push({ resource: this.state.patient })
+                            console.log('1234', conditionResource, claim, claimResponse, 'conditionsArray')
+                            compositionJson.section.push(
+                                {
+                                    "code": {
+                                        "coding": [
+                                            {
+                                                "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                                                "code": "activeTreatment"
+                                            }
+                                        ]
+                                    },
+                                    "section": [
+                                        {
+                                            "code": {
+                                                "coding": [
+                                                    {
+                                                        "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                                                        "code": "treatment"
+                                                    }
+                                                ]
+                                            },
+                                            "entry": [
+                                                {
+                                                    "reference": "CarePlan/" + c.resource.id
+                                                }
+                                            ]
+                                        },
+
+                                    ]
+                                }
+                            )
+                            if (claim !== '' && claimResponse !== '') {
+                                compositionJson.section[key].section.push(
+                                    {
+                                        "code": {
+                                            "coding": [
+                                                {
+                                                    "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                                                    "code": "priorCoverage"
+                                                }
+                                            ]
+                                        },
+                                        "entry": [
+                                            {
+                                                "reference": "Claim/" + claim.id
+                                            },
+                                            {
+                                                "reference": "ClaimResponse/" + claimResponse.id
+                                            }
+                                        ]
+                                    }
+                                )
+                            }
+                            Bundle.entry.push({ resource: c.resource })
+                            Bundle.entry.push({ resource: conditionResource })
+                            Bundle.entry.push({ resource: claim })
+                            Bundle.entry.push({ resource: claimResponse })
+                            Bundle.entry.push({ resource: this.state.endpoint })
+
+                        })
+                        this.setState({ compositionJson: compositionJson })
+                        Bundle.entry.push({ resource: compositionJson })
+                        console.log(compositionJson, 'compositionJSON', Bundle)
+                        this.setState({ bundle: Bundle })
+                    }
+                    else {
+
+                    }
                 }
-                Bundle.entry.push({ resource: c.resource })
-                Bundle.entry.push({ resource: conditionResource })
-                Bundle.entry.push({ resource: claim })
-                Bundle.entry.push({ resource: claimResponse })
-                Bundle.entry.push({ resource: this.state.endpoint })
-
             })
-            if (this.state.patient.hasOwnProperty('generalPractitioner')) {
-                console.log('aaaa', JSON.stringify(this.state.patient.generalPractitioner[0].reference))
-                compositionJson.author.push({ "reference": this.state.patient.generalPractitioner[0].reference })
-            }
-            this.setState({ compositionJson: compositionJson })
-            Bundle.entry.push({ resource: compositionJson })
-            console.log(compositionJson, 'compositionJSON', Bundle)
-            this.setState({ bundle: Bundle })
-
-            // Bundle.entry.push({resource:compositionJson})
-        }
-        else {
-
-        }
-
-
-
-
-        // var searchString = "?type=" + code + "&patient=" + this.state.patient.id
-        // var Url = this.state.config.provider.fhir_url + "/DocumentReference" + searchString;
-        // var Url=''
-
-
-
-        // const token = await this.getToken(config.payerB.grant_type, config.payerB.client_id, config.payerB.client_secret);
-
-        // let headers = {
-        //     "Content-Type": "application/json",
-        // }
-        // if (config.payerB.authorized_fhir) {
-        //     headers['Authorization'] = 'Bearer ' + token
-        // }
-        // let documents = await fetch(Url, {
-        //     method: "GET",
-        //     headers: headers
-        // }).then(response => {
-        //     console.log(response)
-        //     return response.json();
-        // }).then((response) => {
-        //     if (response.hasOwnProperty('entry')) {
-        //         return response
-        //     }
-        // }).catch(reason =>
-        //     console.log("No response recieved from the server", reason)
-        // );
-
-
-
-
-
-        // await this.showError()
     }
 
 
     onDocSelect(event) {
-
         console.log("event --", event, event.target, this.state.selectedDocs);
         let val = event.target.name;
         let selectedDocs = [...this.state.selectedDocs]
@@ -988,16 +939,6 @@ class TASK extends Component {
 
         }
 
-        // let Communication = await fetch(url, {
-        //     method: "PUT",
-        //     headers: headers,
-        //     body: JSON.stringify(bundle)
-        // }).then(response => {
-        //     return response.json();
-        // }).then((response) => {
-        //     console.log(response, 'yes its working')
-        // }
-        // )
         let CommunicationRequest = await fetch(fhir_url, {
             method: "POST",
             headers: headers,
@@ -1048,7 +989,7 @@ class TASK extends Component {
                 })(this.state.files[i])
             }
         }
-        if (this.state.files                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        .length > 0) {
+        if (this.state.files.length > 0) {
             bundle.entry[0].resource.section.push({
                 "code": {
                     "coding": [
@@ -1090,7 +1031,7 @@ class TASK extends Component {
         this.setState({ communicationPayload: communicationPayload })
         var commJson = {
             "resourceType": "Bundle",
-            "type": "transaction",
+            "type": "collection",
             "entry": [{
                 "resource": {
                     "resourceType": "Communication",
@@ -1112,7 +1053,7 @@ class TASK extends Component {
                     // "contained": communicationRequest.contained,
                     "basedOn": [
                         {
-                            'reference': this.state.communicationRequest.resourceType + "/" + this.state.communicationRequest.id
+                            'reference': "Bundle/" + this.state.collectionBundleId
                         }
                     ],
                     "identifier": [
@@ -1132,31 +1073,18 @@ class TASK extends Component {
 
             ]
         }
-	commJson.entry.push({"resource":this.state.communicationRequest,
-			     "request":{"method":"POST","url":"CommunicationRequest"}})
+        // commJson.entry.push({
+        //     "resource": this.state.communicationRequest,
+        //     "request": { "method": "POST", "url": "CommunicationRequest" }
+        // })
         commJson.entry.push({
             'resource': this.state.patient,
-            'request': {
-                "method": "POST",
-                "url": "Patient",
-                "ifNoneExist": "_id=" + this.state.patient.id
-            }
         })
         commJson.entry.push({
             'resource': this.state.requesterOrganization,
-            'request': {
-                "method": "POST",
-                "url": "Organization",
-                "ifNoneExist": "_id=" + this.state.requesterOrganization.id
-            }
         })
         commJson.entry.push({
             'resource': this.state.senderOrganization,
-            'request': {
-                "method": "POST",
-                "url": "Organization",
-                "ifNoneExist": "_id=" + this.state.senderOrganization.id
-            }
         })
 
         console.log(this.state.patient.id, 'iddd', commJson)
@@ -1171,7 +1099,7 @@ class TASK extends Component {
         // }
         var communicationUrl = this.state.endpoint.address;
 
-        let requesterCommunication = await fetch(communicationUrl, {
+        let requesterCommunication = await fetch(communicationUrl+"/Bundle", {
             method: "POST",
             headers: headers,
             body: JSON.stringify(commJson)
@@ -1180,9 +1108,9 @@ class TASK extends Component {
         }).then((response) => {
             console.log("----------response123", response);
             // this.setState({ loading: false });
-            this.UpdateCommunicationRequest();
-            if (response.hasOwnProperty('entry')) {
-                let communicationId = response.entry[0].response.location.split('/')[1]
+            // this.UpdateCommunicationRequest();
+            if (response.hasOwnProperty('id')) {
+                let communicationId = response.id
                 this.setState({ success: true })
                 this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
                 // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
@@ -1195,8 +1123,9 @@ class TASK extends Component {
             console.log("No response recieved from the server", reason)
         );
 
-        let senderCommunication = await this.createFhirResource(commJson, '', this.state.fhir_url).then(() => {
+        let senderCommunication = await this.createFhirResource(commJson, 'Bundle', this.state.fhir_url).then(() => {
             this.setState({ loading: false });
+            
         })
         console.log(senderCommunication, 'Sender Communication has been Created')
 
@@ -1346,7 +1275,7 @@ class TASK extends Component {
         if (fhirResponse) {
             this.setState({ senderOrganization: fhirResponse })
             this.setState({ sender_name: fhirResponse.name });
-            // this.setState({ sender_resource: fhirResponse['resourceType'] });
+            // this.setState({ requester_org: fhirResponse['resourceType'] });
             // const sender_res = await this.getSenderResource(sender_obj);
             // if (sender_res['resourceType'] == 'Patient' || sender_res['resourceType'] == 'Practitioner') {
             //     if (sender_res.hasOwnProperty("name")) {
@@ -1440,7 +1369,7 @@ class TASK extends Component {
     }
 
     render() {
-        let data = this.state.comm_req;
+        let data = this.state.bundleResources;
         const files = this.state.files.map(file => (
             <div className='file-block' key={file.name}>
                 <a onClick={() => this.onRemove(file)} className="close-thik" />
@@ -1448,35 +1377,39 @@ class TASK extends Component {
             </div>
         ))
         console.log(data, 'how may')
-        let content = data.map((d, i) => {
+        let content = data.map((collectionBundle, i) => {
             // console.log(d, i);
-            if (d['status'] === 'active') {
-                let recievedDate = ''
-                if (d.hasOwnProperty('authoredOn')) {
-                    recievedDate = d['authoredOn']
-                }
-                // console.log(startDate.substring(0,10),'stdate')
-                if (d.hasOwnProperty("subject")) {
-                    let patientId = d['subject']['reference'];
-                    if (recievedDate !== '') {
-                        return (
-                            <div key={i} className="main-list">
-                                {i + 1}.  {d['resourceType']} (#{d['id']}) for {patientId} , Recieved On ({recievedDate.substring(0, 10)})
-                            <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, d, patientId)}>
-                                    Review</button>
-                            </div>
-                        )
+            let commReq = this.getResourceFromBundle(collectionBundle, "CommunicationRequest")
+            let patientResource = this.getResourceFromBundle(collectionBundle, "Patient")
+            if (commReq !== null) {
+                if (commReq['status'] === 'active') {
+                    let recievedDate = ''
+                    if (commReq.hasOwnProperty('authoredOn')) {
+                        recievedDate = commReq['authoredOn']
                     }
-                    else {
-                        return (
-                            <div key={i} className="main-list">
-                                {i + 1}.  {d['resourceType']} (#{d['id']}) for {patientId}
-                                <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, d, patientId)}>
-                                    Review</button>
-                            </div>
-                        )
-                    }
+                    // console.log(startDate.substring(0,10),'stdate')
+                    if (commReq.hasOwnProperty("subject")) {
+                        let patientId = commReq['subject']['reference'];
+                        if (recievedDate !== '') {
+                            return (
+                                <div key={i} className="main-list">
+                                    {i + 1}.  {commReq['resourceType']} (#{commReq['id']}) for {patientId} , Recieved On ({recievedDate.substring(0, 10)})
+                            <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, patientResource, collectionBundle, commReq)}>
+                                        Review</button>
+                                </div>
+                            )
+                        }
+                        else {
+                            return (
+                                <div key={i} className="main-list">
+                                    {i + 1}.  {commReq['resourceType']} (#{commReq['id']}) for {patientId}
+                                    <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, patientResource, collectionBundle, commReq)}>
+                                        Review</button>
+                                </div>
+                            )
+                        }
 
+                    }
                 }
             }
         });
@@ -1494,15 +1427,15 @@ class TASK extends Component {
 
             <React.Fragment>
                 <div>
-                <header id="inpageheader">
+                    <header id="inpageheader">
                         <div className="">
                             <div id="logo" className="pull-left">
                                 {this.state.currentPayer !== '' &&
-                   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                                    <h1><img style={{ height: "60px", marginTop: "-13px" }} src={logo} /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
 
-                                  //  <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
+                                    //  <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
                                 }
-                                
+
                             </div>
 
                             <nav id="nav-menu-container">
@@ -1539,62 +1472,66 @@ class TASK extends Component {
                         <div className="section-header">
                             <h3>Transfer Coverage Decision Documents</h3>
                         </div>
-                    {/* <div className="content"></div> */}
-                    <div className="form">
-                        <div className="left-form" style={{ paddingLeft: "2%", paddingTop: "1%" }}>
-                        {/* <div style={{ paddingTop: "10px", color: "#8a6d3b", marginBottom: "10px" }}><strong> Requests for Coverage Transition document </strong></div> */}
-                        <div><h2> Requests for Coverage Transition document</h2></div>
-                            {/* <div style={{ paddingTop: "10px", color: "#8a6d3b", marginBottom: "10px" }}><strong> Requests for Coverage Transition document </strong></div> */}
-                            <div>{content}</div>
-                        </div>
-                        {this.state.form_load &&
-                            <div className="right-form" style={{ paddingTop: "1%",paddingBottom:"100px" }} >
-                                <div className="data-label">
-                                    Patient : <span className="data1">{this.state.patient_name}</span>
+                        {/* <div className="content"></div> */}
+                        <div className="form">
+                            <div className="left-form" style={{ paddingLeft: "2%", paddingTop: "1%" }}>
+                                {/* <div style={{ paddingTop: "10px", color: "#8a6d3b", marginBottom: "10px" }}><strong> Requests for Coverage Transition document </strong></div> */}
+                                <div><h2> Requests for Coverage Transition document</h2></div>
+                                {/* <div style={{ paddingTop: "10px", color: "#8a6d3b", marginBottom: "10px" }}><strong> Requests for Coverage Transition document </strong></div> */}
+                                <div>{content}</div>
+                            </div>
+                            {this.state.reviewError &&
+                                <div>
+                                    <h3>{this.state.reviewErrorMsg}</h3>
                                 </div>
-                                {this.state.patient.hasOwnProperty('gender') &&
+                            }
+                            {this.state.form_load && !this.state.reviewError &&
+                                <div className="right-form" style={{ paddingTop: "1%", paddingBottom: "100px" }} >
                                     <div className="data-label">
-                                        Patient Gender : <span className="data1">{this.state.patient.gender}</span>
-                                    </div>}
-                                {/* {this.state.ident &&
+                                        Patient : <span className="data1">{this.state.patient_name}</span>
+                                    </div>
+                                    {this.state.patient.hasOwnProperty('gender') &&
+                                        <div className="data-label">
+                                            Patient Gender : <span className="data1">{this.state.patient.gender}</span>
+                                        </div>}
+                                    {/* {this.state.ident &&
                                     <div className="data-label">
                                         Patient Identifier : <span className="data1">{this.state.ident}</span>
                                     </div>} */}
-                                {this.state.patient.hasOwnProperty('birthDate') &&
+                                    {this.state.patient.hasOwnProperty('birthDate') &&
+                                        <div className="data-label">
+                                            Patient Date of Birth : <span className="data1">{this.state.patient.birthDate}</span>
+                                        </div>}
                                     <div className="data-label">
-                                        Patient Date of Birth : <span className="data1">{this.state.patient.birthDate}</span>
-                                    </div>}
-                                <div className="data-label">
-                                    Requester Payer {this.state.sender_resource} : <span className="data1">{this.state.sender_name}</span>
-                                </div>
-                                {/* <div className="data-label">
+                                        Requester Payer : <span className="data1">{this.state.requesterOrganization.name}</span>
+                                    </div>
+                                    {/* <div className="data-label">
                                     Start Date : <span className="data1">{moment(this.state.startDate).format(" YYYY-MM-DD, hh:mm a")}</span>
                                 </div>
                                 <div className="data-label">
                                     End Date : <span className="data1">{moment(this.state.endDate).format(" YYYY-MM-DD, hh:mm a")}</span>
                                 </div> */}
-                                {this.state.recievedDate !== '' &&
+                                    {this.state.recievedDate !== '' &&
+                                        <div className="data-label">
+                                            Recieved Date : <span className="data1">{moment(this.state.recievedDate).format(" YYYY-MM-DD, hh:mm a")}</span>
+                                        </div>
+                                    }
+
                                     <div className="data-label">
-                                        Recieved Date : <span className="data1">{moment(this.state.recievedDate).format(" YYYY-MM-DD, hh:mm a")}</span>
+                                        Requested for : <span className="data1">{requests}</span>
                                     </div>
-                                }
-
-
-                                <div className="data-label">
-                                    Requested for : <span className="data1">{requests}</span>
-                                </div>
-                                {/* {this.state.observationList.length >0 &&
+                                    {/* {this.state.observationList.length >0 &&
                                     <div className="data-label">
                                         Obsersvation : <span className="data1">{observations}</span>
                                     </div>
                                 } */}
-                                {/* {this.state.documentList.length >0 &&
+                                    {/* {this.state.documentList.length >0 &&
                                     <div className="data-label">
                                         Documents : <span className="data1">{documents}</span>
                                     </div>  
                                 } */}
 
-                                {/* <div className="data-label" style={{ paddingTop: "0px" }}>
+                                    {/* <div className="data-label" style={{ paddingTop: "0px" }}>
                                     Select documents :
 
                                 </div>
@@ -1603,111 +1540,90 @@ class TASK extends Component {
                                         return this.renderDocs(item, key);
                                     })}
                                 </div> */}
-                                {/* {this.state.documentList.length === 0 &&
+                                    {/* {this.state.documentList.length === 0 &&
                                     <div >
                                         {"No Documents found.Please Upload the required documents"}
                                     </div>
                                 } */}
 
-                                <div className="data-label" style={{ paddingTop: "0px" }}>
-                                    Select Care Plans to submit :
+                                    <div className="data-label" style={{ paddingTop: "0px" }}>
+                                        Select Care Plans to submit :
                                 </div>
-                                {this.state.carePlanResources.length > 0 &&
-                                    <div>
-                                        {this.state.carePlanResources.map((item, key) => {
-                                            return this.renderCarePlans(item, key);
-                                        })}
-                                    </div>
-                                }
-                                {this.state.carePlanResources !== '' &&
-                                    <div className="form-row" >
-                                        <div className="form-group col-2" >
-                                            <button className="btn list-btn" style={{ float: "left" }} onClick={this.showBundlePreview}>
-                                                Preview</button>
+                                    {this.state.carePlanResources.length > 0 &&
+                                        <div>
+                                            {this.state.carePlanResources.map((item, key) => {
+                                                return this.renderCarePlans(item, key);
+                                            })}
                                         </div>
-                                        {this.state.show &&
-
-                                            <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
-                                        }
-                                    </div>
-
-                                }
-                                {this.state.error &&
-                                    <div className="decision-card alert-error">
-                                        {this.state.errorMsg}
-                                    </div>
-                                }
-
-                                {/* <div className='data-label'>
-                                    <div>Search Observations form FHIR
-                                        <small> - Enter a search keyword. (ex: height)</small>
-                                    </div>
-                                    <Input style={{ width: "100%" }}
-                                        icon='search'
-                                        placeholder='Search'
-                                        className='ui fluid  input' type="text" name="searchParameter"
-                                        onChange={this.onChangeSearchParameter}
-                                    >
-                                    </Input>
-                                    // {/* <button style={{ width:"30%", float:"left"}}className="btn list-btn" onClick={() => this.getObservationDetails()}>
-                                    //         Search</button> 
-                                    {this.state.observationList.length > 0 &&
-                                        <div className="data1">Found {this.state.observationList.length} observation(s)</div>
                                     }
-                                    {this.state.observationList.length === 0 &&
-                                        <div className="data1">When no observations found. Please upload requested documents.</div>
-                                    }
-                                </div> */}
-                                <div className="header">
-                                    Upload Required/Additional Documentation
-                                </div>
-                                <div className="drop-box">
-                                    <section>
-                                        <Dropzone
-                                            onDrop={this.onDrop.bind(this)}
-                                            onFileDialogCancel={this.onCancel.bind(this)
+                                    {this.state.carePlanResources !== '' &&
+                                        <div className="form-row" >
+                                            <div className="form-group col-2" >
+                                                <button className="btn list-btn" style={{ float: "left" }} onClick={this.showBundlePreview}>
+                                                    Preview</button>
+                                            </div>
+                                            {this.state.show &&
+
+                                                <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
                                             }
-                                        >
-                                            {({ getRootProps, getInputProps }) => (
-                                                <div    >
-                                                    <div className='drag-drop-box' {...getRootProps()}>
-                                                        <input {...getInputProps()} />
-                                                        <div className="file-upload-icon"><FontAwesomeIcon icon={faCloudUploadAlt} /></div>
-                                                        <div>Drop files here, or click to select files </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </Dropzone>
-                                    </section>
-                                    <div  >{files}</div>
+                                        </div>
+
+                                    }
+                                    {this.state.error &&
+                                        <div className="decision-card alert-error">
+                                            {this.state.errorMsg}
+                                        </div>
+                                    }
+                                    <div className="header">
+                                        Upload Required/Additional Documentation
                                 </div>
-                                {/* {this.state.error &&
+                                    <div className="drop-box">
+                                        <section>
+                                            <Dropzone
+                                                onDrop={this.onDrop.bind(this)}
+                                                onFileDialogCancel={this.onCancel.bind(this)
+                                                }
+                                            >
+                                                {({ getRootProps, getInputProps }) => (
+                                                    <div    >
+                                                        <div className='drag-drop-box' {...getRootProps()}>
+                                                            <input {...getInputProps()} />
+                                                            <div className="file-upload-icon"><FontAwesomeIcon icon={faCloudUploadAlt} /></div>
+                                                            <div>Drop files here, or click to select files </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </Dropzone>
+                                        </section>
+                                        <div  >{files}</div>
+                                    </div>
+                                    {/* {this.state.error &&
                                     <div className="decision-card alert-error">
                                         {this.state.errorMsg}
                                     </div>
                                 } */}
-                                {this.state.success &&
-                                    <div className="decision-card alert-success">
-                                        {this.state.successMsg}
-                                    </div>
-                                }
-                                <div className="text-center">
-                                <button type="button" onClick={this.startLoading}>Submit
+                                    {this.state.success &&
+                                        <div className="decision-card alert-success">
+                                            {this.state.successMsg}
+                                        </div>
+                                    }
+                                    <div className="text-center">
+                                        <button type="button" onClick={this.startLoading}>Submit
                                         <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
-                                        <Loader
-                                            type="Oval"
-                                            color="#fff"
-                                            height="15"
-                                            width="15"
-                                        />
-                                    </div>
-                                </button>
+                                                <Loader
+                                                    type="Oval"
+                                                    color="#fff"
+                                                    height="15"
+                                                    width="15"
+                                                />
+                                            </div>
+                                        </button>
 
-                                <NotificationContainer />
-                                </div>
-                            </div>}
-                    </div>
-                    </main> 
+                                        <NotificationContainer />
+                                    </div>
+                                </div>}
+                        </div>
+                    </main>
                 </div>
             </React.Fragment >
         );
