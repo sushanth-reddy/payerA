@@ -94,7 +94,7 @@ class TASK extends Component {
             bundleResources: [],
             reviewError: false,
             reviewErrorMsg: "",
-            collectionBundleId:""
+            collectionBundleId: ""
         };
         this.goTo = this.goTo.bind(this);
         this.getCommunicationRequests = this.getCommunicationRequests.bind(this);
@@ -381,7 +381,7 @@ class TASK extends Component {
     }
     async getPatientDetails(patient_id, patient_resource, collectionBundle, communication_request) {
         console.log("Collection Bundle----", collectionBundle);
-        this.setState({"collectionBundleId":collectionBundle.id})
+        this.setState({ "collectionBundleId": collectionBundle.id })
         if (communication_request.hasOwnProperty('payload')) {
             await this.getDocuments(communication_request['payload']);
         }
@@ -518,16 +518,16 @@ class TASK extends Component {
                 referenceArray.push({ resource: procedure })
             }
             if (object.hasOwnProperty('encounter')) {
-                await this.getResources(object.encounter.reference).then((encounter)=>{
+                await this.getResources(object.encounter.reference).then((encounter) => {
+                    if (encounter.hasOwnProperty('participant')) {
+                        if (encounter.participant[0].hasOwnProperty('individual')) {
+                            this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
+                                referenceArray.push({ resource: practitioner })
+                            });
+                        }
+                    }
                     referenceArray.push({ resource: encounter })
                 })
-                // if (encounter.hasOwnProperty('participant')) {
-                //     if (encounter.participant[0].hasOwnProperty('individual')) {
-                //         let practitioner = await this.getResources(encounter.participant[0].individual.reference)
-                //         referenceArray.push({ resource: practitioner })
-                //     }
-                // }
-                
             }
             if (object.hasOwnProperty('insurance')) {
                 if (object.insurance[0].hasOwnProperty('coverage')) {
@@ -543,15 +543,17 @@ class TASK extends Component {
         }
         else if (resource === "CarePlan") {
             if (object.hasOwnProperty('encounter')) {
-                await this.getResources(object.encounter.reference).then((encounter)=>{
+                await this.getResources(object.encounter.reference).then((encounter) => {
+                    if (encounter.hasOwnProperty('participant')) {
+                        if (encounter.participant[0].hasOwnProperty('individual')) {
+                            this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
+                                referenceArray.push({ resource: practitioner })
+                            });
+                        }
+                    }
                     referenceArray.push({ resource: encounter })
                 })
-                // if (encounter.hasOwnProperty('participant')) {
-                //     if (encounter.participant[0].hasOwnProperty('individual')) {
-                //         let practitioner = await this.getResources(encounter.participant[0].individual.reference)
-                //         referenceArray.push({ resource: practitioner })
-                //     }
-                // }
+
             }
             if (object.hasOwnProperty('careTeam')) {
                 let careTeam = await this.getResources(object.careTeam[0].reference)
@@ -618,69 +620,6 @@ class TASK extends Component {
             "section": []
         }
 
-        let sender_org_id = ""
-        let sender_org = {}
-        if (communication_request.hasOwnProperty("sender")) {
-            let sender_org_ref = communication_request.sender.reference;
-            sender_org_id = sender_org_ref.split("/")[1]
-            sender_org = this.getResourceFromBundle(collectionBundle, "Organization", sender_org_id)
-            console.log("Sender Org---", sender_org);
-            this.setState({senderOrganization: sender_org});
-        }
-        if (sender_org_id !== "") {
-            compositionJson.author.push({ "reference": "Organization/" + sender_org_id })
-        }
-        if (sender_org) {
-            Bundle.entry.push({ "resource": sender_org });
-            let endpoint = ""
-            let endpoint_id = ""
-            let endpoint_resource = {}
-            this.setState({ "sender_name": sender_org.name });
-            if (sender_org.hasOwnProperty("endpoint")) {
-                endpoint = sender_org.endpoint
-                endpoint_id = endpoint[0].reference.split("/")[1]
-                console.log("Endpoint id---",sender_org.endpoint);
-                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
-                if (endpoint_resource) {
-                    console.log("Endpoint---",endpoint_resource);
-                    Bundle.entry.push({ "resource": endpoint_resource });
-                }
-            }
-        }
-
-        let requester_org_id = ""
-        let requester_org = {}
-        if (communication_request.hasOwnProperty("requester")) {
-            let requester_org_ref = communication_request.requester.reference;
-            requester_org_id = requester_org_ref.split("/")[1]
-            requester_org = this.getResourceFromBundle(collectionBundle, "Organization", requester_org_id)
-            console.log("Requester Org---", requester_org);
-            this.setState({"requesterOrganization":requester_org});
-        }
-        if (requester_org) {
-            console.log("Inside if requestor---")
-            let endpoint = ""
-            let endpoint_id = ""
-            let endpoint_resource = {}
-            this.setState({ "sender_name": requester_org.name });
-            if (requester_org.hasOwnProperty("endpoint")) {
-                endpoint = requester_org.endpoint
-                endpoint_id = endpoint[0].reference.split("/")[1]
-                console.log("Endpoint id---",requester_org.endpoint);
-                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
-                if (endpoint_resource) {
-                    console.log("Endpoint---",endpoint_resource);
-                    Bundle.entry.push({ "resource": endpoint_resource });
-                    this.setState({"endpoint":endpoint_resource});
-                }
-            } else {
-                this.setState({ "reviewError": true })
-                this.setState({ "reviewErrorMsg": "There is no endpoint defined in requester!!" })
-            }
-
-            Bundle.entry.push({ "resource": requester_org });
-
-        }
 
         var arr = []
         let conditionResource = ''
@@ -800,8 +739,74 @@ class TASK extends Component {
                             Bundle.entry.push({ resource: this.state.endpoint })
 
                         })
+
+
                         this.setState({ compositionJson: compositionJson })
                         Bundle.entry.push({ resource: compositionJson })
+                        let sender_org_id = ""
+                        let sender_org = {}
+                        if (communication_request.hasOwnProperty("sender")) {
+                            let sender_org_ref = communication_request.sender.reference;
+                            sender_org_id = sender_org_ref.split("/")[1]
+                            sender_org = this.getResourceFromBundle(collectionBundle, "Organization", sender_org_id)
+                            console.log("Sender Org---", sender_org);
+                            this.setState({ senderOrganization: sender_org });
+                        }
+                        if (sender_org_id !== "") {
+                            compositionJson.author.push({ "reference": "Organization/" + sender_org_id })
+                        }
+                        if (sender_org) {
+                            Bundle.entry.push({ "resource": sender_org });
+                            let endpoint = ""
+                            let endpoint_id = ""
+                            let endpoint_resource = {}
+                            this.setState({ "sender_name": sender_org.name });
+                            if (sender_org.hasOwnProperty("endpoint")) {
+                                endpoint = sender_org.endpoint
+                                endpoint_id = endpoint[0].reference.split("/")[1]
+                                console.log("Endpoint id---", sender_org.endpoint);
+                                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+                                if (endpoint_resource) {
+                                    console.log("Endpoint---", endpoint_resource);
+                                    Bundle.entry.push({ "resource": endpoint_resource });
+                                }
+                            }
+                        }
+
+                        let requester_org_id = ""
+                        let requester_org = {}
+                        if (communication_request.hasOwnProperty("requester")) {
+                            let requester_org_ref = communication_request.requester.reference;
+                            requester_org_id = requester_org_ref.split("/")[1]
+                            requester_org = this.getResourceFromBundle(collectionBundle, "Organization", requester_org_id)
+                            console.log("Requester Org---", requester_org);
+                            this.setState({ "requesterOrganization": requester_org });
+                        }
+                        if (requester_org) {
+                            console.log("Inside if requestor---")
+                            let endpoint = ""
+                            let endpoint_id = ""
+                            let endpoint_resource = {}
+                            this.setState({ "sender_name": requester_org.name });
+                            if (requester_org.hasOwnProperty("endpoint")) {
+                                endpoint = requester_org.endpoint
+                                endpoint_id = endpoint[0].reference.split("/")[1]
+                                console.log("Endpoint id---", requester_org.endpoint);
+                                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+                                if (endpoint_resource) {
+                                    console.log("Endpoint---", endpoint_resource);
+                                    Bundle.entry.push({ "resource": endpoint_resource });
+                                    this.setState({ "endpoint": endpoint_resource });
+                                }
+                            } else {
+                                this.setState({ "reviewError": true })
+                                this.setState({ "reviewErrorMsg": "There is no endpoint defined in requester!!" })
+                            }
+
+                            Bundle.entry.push({ "resource": requester_org });
+
+                        }
+
                         console.log(compositionJson, 'compositionJSON', Bundle)
                         this.setState({ bundle: Bundle })
                     }
@@ -1097,8 +1102,8 @@ class TASK extends Component {
         // }
         var communicationUrl = this.state.endpoint.address;
         console.log("")
-        console.log("Comm request json---",JSON.stringify(commJson));
-        let requesterCommunication = await fetch(communicationUrl+"/Bundle", {
+        console.log("Comm request json---", JSON.stringify(commJson));
+        let requesterCommunication = await fetch(communicationUrl + "/Bundle", {
             method: "POST",
             headers: headers,
             body: JSON.stringify(commJson)
@@ -1124,7 +1129,7 @@ class TASK extends Component {
 
         let senderCommunication = await this.createFhirResource(commJson, 'Bundle', this.state.fhir_url).then(() => {
             this.setState({ loading: false });
-            
+
         })
         console.log(senderCommunication, 'Sender Communication has been Created')
 
@@ -1319,7 +1324,7 @@ class TASK extends Component {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json"
-                        
+
                         // 'Authorization': 'Bearer ' + token
                     }
                 }).then(response => {
