@@ -679,6 +679,11 @@ class TASK extends Component {
                                 })
                             }
                             Bundle.entry.push({ resource: this.state.patient })
+                            if (this.state.patient.hasOwnProperty('generalPractitioner')) {
+                                this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac)=>{
+                                    Bundle.entry.push({ resource: prac })
+                                })
+                            }
                             console.log('1234', conditionResource, claim, claimResponse, 'conditionsArray')
                             compositionJson.section.push(
                                 {
