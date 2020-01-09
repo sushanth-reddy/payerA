@@ -94,7 +94,9 @@ class TASK extends Component {
             bundleResources: [],
             reviewError: false,
             reviewErrorMsg: "",
-            collectionBundleId: ""
+            collectionBundleId: "",
+            updatedCommReq: '',
+            collectionBundle: ''
         };
         this.goTo = this.goTo.bind(this);
         this.getCommunicationRequests = this.getCommunicationRequests.bind(this);
@@ -385,6 +387,8 @@ class TASK extends Component {
         if (communication_request.hasOwnProperty('payload')) {
             await this.getDocuments(communication_request['payload']);
         }
+        this.setState({ collectionBundle: collectionBundle })
+
         this.setState({ patient_name: "" });
         this.setState({ reviewError: false });
         this.setState({ reviewErrorMsg: "" });
@@ -908,14 +912,10 @@ class TASK extends Component {
         })
     }
 
-    async UpdateCommunicationRequest() {
+    async UpdateCommunicationRequest(collectionBundle) {
         let headers = {
             "Content-Type": "application/json",
         }
-        let comm_req = this.state.communicationRequest
-        comm_req.status = 'completed'
-        console.log(this.state.communicationRequest, 'what value')
-        this.setState({ communicationRequest: comm_req })
         // const token = await this.getToken(config.payerA.grant_type, config.payerA.client_id, config.payerA.client_secret);
 
         // const token = await createToken(config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
@@ -937,25 +937,20 @@ class TASK extends Component {
         //     }]
 
         // }
+        let communication_request = this.state.communicationRequest
+        communication_request.status = 'completed'
+        this.setState({ updatedCommReq: communication_request })
+        collectionBundle.entry.map((entry, k) => {
+            if (entry.resource.resourceType === 'CommunicationRequest') {
+                entry.resource = this.state.updatedCommReq
+            }
+        })
         var fhir_url = this.state.fhir_url;
-        var req_bundle = {
-            "resourceType": "Bundle",
-            "type": "transaction",
-            "entry": [{
-                "resource": this.state.communicationRequest,
-                "request": {
-                    "method": "PUT",
-                    "url": "CommunicationRequest?identifier=" + this.state.communicationRequest.identifier[0].value,
-                    "ifNoneExist": "identifier=" + this.state.communicationRequest.identifier[0].value
-                }
-            }]
 
-        }
-
-        let CommunicationRequest = await fetch(fhir_url, {
-            method: "POST",
+        let CommunicationRequest = await fetch(fhir_url + "/Bundle/" + collectionBundle.id, {
+            method: "PUT",
             headers: headers,
-            body: JSON.stringify(req_bundle)
+            body: JSON.stringify(collectionBundle)
         }).then(response => {
             return response.json();
         }).then((response) => {
@@ -981,6 +976,7 @@ class TASK extends Component {
         let randomString = this.randomString()
         let bundle = this.state.bundle
         bundle.entry = this.getUnique(bundle.entry)
+        console.log(bundle, 'pppppp')
         let files_arr = []
         if (this.state.files !== null) {
             for (var i = 0; i < this.state.files.length; i++) {
@@ -1066,7 +1062,7 @@ class TASK extends Component {
                     // "contained": communicationRequest.contained,
                     "basedOn": [
                         {
-                            'reference': "Bundle/" + this.state.collectionBundleId
+                            'reference': "Bundle/" + this.state.collectionBundle.id
                         }
                     ],
                     "identifier": [
@@ -1108,7 +1104,7 @@ class TASK extends Component {
         var communicationUrl = this.state.endpoint.address;
         console.log("")
         console.log("Comm request json---", JSON.stringify(commJson));
-        let requesterCommunication = await fetch(communicationUrl + "/Bundle", {
+        let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/"+communicationUrl + "/Bundle", {
             method: "POST",
             headers: headers,
             body: JSON.stringify(commJson)
@@ -1120,6 +1116,14 @@ class TASK extends Component {
             // this.UpdateCommunicationRequest();
             if (response.hasOwnProperty('id')) {
                 let communicationId = response.id
+                let senderCommunication = this.createFhirResource(commJson, 'Bundle', this.state.fhir_url).then(() => {
+                    this.setState({ loading: false });
+
+                    this.UpdateCommunicationRequest(this.state.collectionBundle)
+
+                })
+                console.log(senderCommunication, 'Sender Communication has been Created')
+
                 this.setState({ success: true })
                 this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
                 // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
@@ -1128,15 +1132,16 @@ class TASK extends Component {
 
             // this.setState({response})
             console.log(response, 'res')
-        }).catch(reason =>
+        }).catch((reason) =>{
             console.log("No response recieved from the server", reason)
+            this.setState({ loading: false })
+
+            this.setState({ error: true });
+            this.setState({ errorMsg: "No response recieved from the server!!"+reason })
+        }
+
         );
 
-        let senderCommunication = await this.createFhirResource(commJson, 'Bundle', this.state.fhir_url).then(() => {
-            this.setState({ loading: false });
-
-        })
-        console.log(senderCommunication, 'Sender Communication has been Created')
 
 
 
@@ -1579,11 +1584,11 @@ class TASK extends Component {
                                         </div>
 
                                     }
-                                    {this.state.error &&
+                                    {/* {this.state.error &&
                                         <div className="decision-card alert-error">
                                             {this.state.errorMsg}
                                         </div>
-                                    }
+                                    } */}
                                     <div className="header">
                                         Upload Required/Additional Documentation
                                 </div>
@@ -1612,6 +1617,11 @@ class TASK extends Component {
                                         {this.state.errorMsg}
                                     </div>
                                 } */}
+                                 {this.state.error &&
+                                        <div className="decision-card alert-error">
+                                            {this.state.errorMsg}
+                                        </div>
+                                    }
                                     {this.state.success &&
                                         <div className="decision-card alert-success">
                                             {this.state.successMsg}
