@@ -405,6 +405,7 @@ class TASK extends Component {
         this.setState({ error: false })
         this.setState({ success: false })
         this.setState({ documentList: [] })
+        this.setState({ loading: false })
         this.setState({ files: [] })
         let patient_identifier = null
         if (patient_resource.hasOwnProperty("identifier")) {
@@ -451,7 +452,7 @@ class TASK extends Component {
                         this.setState({ recievedDate: communication_request.authoredOn })
                     }
                     this.setState({ communicationRequest: communication_request });
-                    this.getObservationDetails(communication_request, collectionBundle).then(() => {
+                    this.getDetails(communication_request, collectionBundle).then(() => {
                         this.showError()
                     })
                     // console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
@@ -598,7 +599,7 @@ class TASK extends Component {
     }
 
 
-    async getObservationDetails(communication_request, collectionBundle) {
+    async getDetails(communication_request, collectionBundle) {
         var date = new Date()
         var currentDateTime = date.toISOString()
         let Bundle = this.state.bundle
@@ -1077,6 +1078,10 @@ class TASK extends Component {
 
             ]
         }
+        if(this.state.communicationRequest.hasOwnProperty('id')){
+            
+            commJson.entry[0].resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
+        }
         // commJson.entry.push({
         //     "resource": this.state.communicationRequest,
         //     "request": { "method": "POST", "url": "CommunicationRequest" }
@@ -1129,7 +1134,11 @@ class TASK extends Component {
                 // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
                 return response
             }
-
+            if(response.hasOwnProperty('issue')){
+                this.setState({ loading: false })
+                this.setState({ error: true });
+                this.setState({ errorMsg: response.issue[0].diagnostics })
+            }
             // this.setState({response})
             console.log(response, 'res')
         }).catch((reason) =>{
@@ -1155,7 +1164,7 @@ class TASK extends Component {
         let searchParameter = this.state.searchParameter;
         searchParameter = event.target.value
         this.setState({ searchParameter: searchParameter });
-        this.getObservationDetails();
+        this.getDetails();
     }
     handleChange(obs, event) {
         let observation = obs.observation
