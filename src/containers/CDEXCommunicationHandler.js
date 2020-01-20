@@ -1,28 +1,17 @@
 import React, { Component } from 'react';
-// import DropdownCDSHook from '../components/DropdownCDSHook';
-// import DropdownFrequency from '../components/DropdownFrequency';
-// import DropdownTreating from '../components/DropdownTreating';
-// import DropdownPayer from '../components/DropdownPayer';
-// import DropdownServiceCode from '../components/DropdownServiceCode';
-// import { Input } from 'semantic-ui-react';
-// import { DateInput } from 'semantic-ui-calendar-react';
 import { withRouter } from 'react-router-dom';
 
 import Client from 'fhir-kit-client';
 import 'font-awesome/css/font-awesome.min.css';
 import "react-datepicker/dist/react-datepicker.css";
-// import DisplayBox from '../components/DisplayBox';
 import 'font-awesome/css/font-awesome.min.css';
 import '../index.css';
 import '../components/consoleBox.css';
 import Loader from 'react-loader-spinner';
-// import config from '../globalConfiguration.json';
 import { KEYUTIL } from 'jsrsasign';
 import { createToken } from '../components/Authentication';
 import { connect } from 'react-redux';
-import config from '../globalConfiguration.json';
-import logo from "../Palm_GBA_H.JPG";
-
+import { Header } from '../components/Header';
 
 
 const types = {
@@ -1116,45 +1105,7 @@ class CDEXCommunicationHandler extends Component {
             // }
             <React.Fragment>
                 <div>
-                    <header id="inpageheader">
-                        <div className="">
-                            <div id="logo" className="pull-left">
-                                {this.state.currentPayer !== '' &&
-                                    //   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-
-                                    <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-                                }
-
-                            </div>
-                            <nav id="nav-menu-container">
-                                <ul className="nav-menu">
-                                    <li className=" menu-has-children"><a href="">Request</a>
-                                        <ul>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/care_gaps"}>Request Care Gaps</a></li>
-                                        </ul>
-                                    </li>
-                                    <li className=" menu-active menu-has-children"><a href="">TASKS</a>
-                                        <ul>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
-                                            <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Coverage Documents</a></li>
-                                        </ul>
-                                    </li>
-                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}
-                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>Task</a></li> */}
-                                    <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
-                                    <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>
-                                        <ul>
-                                            <li><a href="" onClick={this.onClickLogout}>Logout</a></li>
-                                        </ul>
-                                    </li>
-
-                                </ul>
-                            </nav>
-                            
-                        </div>
-                    </header>
+                <Header payer={this.state.currentPayer.payer_name} />
                     <main id="main" style={{ marginTop: "92px" }}>
                         <div className="form">
 

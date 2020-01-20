@@ -4,6 +4,7 @@ import { SelectCareGapTopic } from '../components/SelectCareGapTopic';
 import { DateInput } from 'semantic-ui-calendar-react';
 import Loader from 'react-loader-spinner';
 import { createToken } from '../components/Authentication';
+import { Header } from '../components/Header';
 
 export default class CareGaps extends Component {
     constructor(props) {
@@ -99,43 +100,7 @@ export default class CareGaps extends Component {
     render() {
         return (
             <div>
-                <header id="inpageheader">
-                        <div className="">
-                            <div id="logo" className="pull-left">
-                                {this.state.currentPayer !== '' &&
-                                    //   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-                                    <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-                                }
-
-                            </div>
-
-                            <nav id="nav-menu-container">
-                                <ul className="nav-menu">
-                                    <li className="menu-active menu-has-children"><a href="">Request</a>
-                                        <ul>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
-                                            <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/care_gaps"}>Request Care Gaps</a></li>
-                                        </ul>
-                                    </li>
-                                    <li className="menu-has-children"><a href="">TASKS</a>
-                                        <ul>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
-                                            <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
-                                            <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Coverage Documents</a></li>
-                                        </ul>
-                                    </li>
-
-                                    <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
-                                    <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>
-                                        <ul>
-                                            <li><a href="" onClick={this.onClickLogout}>Logout</a></li>
-                                        </ul>
-                                    </li>
-
-                                </ul>
-                            </nav>
-                        </div>
-                    </header>
+                <Header payer={this.state.currentPayer.payer_name} />
                 <main id="main" style={{ marginTop: "92px" }}>
 
                     <div className="form">

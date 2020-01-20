@@ -1233,26 +1233,6 @@ class ProviderCommunicationRequest extends Component {
         return (
             <React.Fragment>
                 <div>
-                    {/* <header id="inpageheader">
-                    <div className="container">
-
-                        <div id="logo" className="pull-left">
-                            {this.state.currentPayer !== '' &&
-                                <h1><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-                            }
-                            <a href="#intro"><img src={process.env.PUBLIC_URL + "/assets/img/logo.png"} alt="" title="" /></a>
-                        </div>
-
-                        <nav id="nav-menu-container">
-                            <ul className="nav-menu">
-                                <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of documents</a></li>
-                                <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>TASK</a></li>
-                                <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
-
-                            </ul>
-                        </nav>
-                    </div>
-                </header> */}
                     <main id="main" >
                 <div className="form" style={{paddingBottom:"100px"}}>
                             {/* <div>

@@ -1,6 +1,4 @@
 import React, { Component } from 'react';
-import config_default from '../globalConfiguration.json';
-import { Input } from 'semantic-ui-react';
 import { bindActionCreators } from 'redux';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
@@ -9,10 +7,8 @@ import 'react-notifications/lib/notifications.css';
 import { NotificationContainer, NotificationManager } from 'react-notifications';
 import Loader from 'react-loader-spinner';
 import { SelectPayerWithId } from '../components/SelectPayerWithId.js';
-import logo from "../Palm_GBA_H.JPG";
+import { Header } from '../components/Header';
 
-// const NotificationContainer = window.ReactNotifications.NotificationContainer;
-// const NotificationManager = window.ReactNotifications.NotificationManager;
 class Configuration extends Component {
     constructor(props) {
         super(props);
@@ -206,45 +202,7 @@ class Configuration extends Component {
         return (
             <React.Fragment>
                 <div>
-                    <header id="inpageheader">
-                        <div className="">
-                            <div id="logo" className="pull-left">
-                                {this.state.currentPayer !== '' &&
-                                    //   <h1><img style={{height: "60px", marginTop: "-13px"}} src={logo}  /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-
-                                    <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-                                }
-
-                            </div>
-
-                            <nav id="nav-menu-container">
-                                <ul className="nav-menu">
-                                    <li className=" menu-has-children"><a href="">Request</a>
-                                        <ul>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/care_gaps"}>Request Care Gaps</a></li>
-                                        </ul>
-                                    </li>
-                                    <li className=" menu-has-children"><a href="">TASKS</a>
-                                        <ul>
-                                            <li  ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Coverage Documents</a></li>
-                                        </ul>
-                                    </li>
-                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}
-                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>Task</a></li> */}
-                                    <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
-                                    <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>
-                                        <ul>
-                                            <li><a href="" onClick={this.onClickLogout}>Logout</a></li>
-                                        </ul>
-                                    </li>
-
-                                </ul>
-                            </nav>
-                        </div>
-                    </header>
+                <Header payer={this.state.currentPayer.payer_name} />
                     {/* <div className="main_heading">
                         <span style={{ lineHeight: "35px" }}>PILOT INCUBATOR - Configuration</span>
                         <div className="menu_conf" onClick={() => this.goTo('provider_request')}>

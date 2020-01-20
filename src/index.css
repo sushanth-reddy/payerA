@@ -5,6 +5,9 @@ body {
   color:gray;
   width: inherit;
 }
+.table{ 
+  border: 2px solid #dee2e6;
+}
 .l-form{
   width: 40%;
   float: left;
@@ -33,10 +36,10 @@ body {
 }
 .list-btn{
  float: right;
-    color: white;
     font-family: sans-serif;
     line-height: 10px;
-    background: #cacbcd;
+    background-color: #13a456;
+  color: #fff;
 }
 .data-label{
   color: #8a6d3b;

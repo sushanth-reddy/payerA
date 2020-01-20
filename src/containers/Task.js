@@ -3,26 +3,15 @@ import React, { Component } from 'react';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import Client from 'fhir-kit-client';
-import { createToken } from '../components/Authentication';
-import { Link } from 'react-router-dom';
-import { send } from 'q';
 import Loader from 'react-loader-spinner';
-import { Input, Checkbox, IconGroup } from 'semantic-ui-react';
-import { NotificationContainer, NotificationManager } from 'react-notifications';
-import { faCommentDollar } from '@fortawesome/free-solid-svg-icons';
-import Moment from 'react-moment';
+import { NotificationContainer } from 'react-notifications';
 import moment from "moment";
 import Dropzone from 'react-dropzone';
 import { faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import config from '../globalConfiguration.json';
-import { ThemeProvider } from 'styled-components';
-import logo from "../Palm_GBA_H.JPG";
-
-
+import { Header } from '../components/Header';
 var date = new Date()
 var currentDateTime = date.toISOString()
-
 
 const types = {
     error: "errorClass",
@@ -30,17 +19,17 @@ const types = {
     debug: "debugClass",
     warning: "warningClass"
 }
-class TASK extends Component {
+class Task extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            // config: this.props.config,
             config: sessionStorage.getItem('config') !== undefined ? JSON.parse(sessionStorage.getItem('config')) : {},
-            comm_req: [],
+            listLoading: false,
             patient: {},
             form_load: false,
             loading: false,
             patient_name: "",
+            patient_identifier: "",
             docs_required: [],
             requester_org: '',
             sender_name: '',
@@ -100,7 +89,7 @@ class TASK extends Component {
         };
         this.goTo = this.goTo.bind(this);
         this.getCommunicationRequests = this.getCommunicationRequests.bind(this);
-        this.getPatientDetails = this.getPatientDetails.bind(this);
+        this.fetchData = this.fetchData.bind(this);
         this.getSenderDetails = this.getSenderDetails.bind(this);
         this.getSenderResource = this.getSenderResource.bind(this);
         this.startLoading = this.startLoading.bind(this);
@@ -188,7 +177,7 @@ class TASK extends Component {
             sessionStorage.setItem('redirectTo', "/task");
             this.props.history.push("/login");
         }
-        let resources = [];
+
         let payersList = await this.getPayerList()
         let payer;
         if (this.state.config !== null) {
@@ -198,44 +187,8 @@ class TASK extends Component {
         this.setState({ currentPayer: payer })
         this.setState({ requesterIdentifier: payer.payer_identifier })
         this.setState({ payerName: payer.payer_name })
-        let bundleResources = this.state.bundleResources;
-        let response = await this.getCommunicationRequests('');
-        console.log("response after wait---" + response);
-        if (response !== undefined) {
-            //search bundle entry
-            console.log("response not undefined--" + response);
-            if (response.hasOwnProperty('entry')) {
-                response.entry.map((e, k) => {
-                    //entry of bundle with type collection
-                    if (e.resource.hasOwnProperty('entry')) {
-                        e.resource.entry.map((entry, k) => {
-                            // console.log("Resource---",entry.resource,"resource id---",entry.id);
-                            //if entry has payload as key in its resource
-                            this.setState()
-                            if (entry.resource.resourceType === 'CommunicationRequest' && entry.resource.hasOwnProperty('payload')) {
-                                entry.resource.payload.map((p) => {
-                                    if (p.hasOwnProperty('extension')) {
-                                        if (p.extension[0].hasOwnProperty('valueCodeableConcept')) {
-                                            if (p.extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
-                                                console.log(e.resource, 'yes its the bundle')
-                                                resources.push(entry.resource)
-                                                bundleResources.push(e.resource)
-                                                this.setState({ bundleResources });
-                                            }
-                                        }
-                                    }
-                                })
-                            }
-                        })
-                    }
-                })
-            }
-        }
-        else {
-            console.log('no communications')
-        }
-        console.log("-------", resources);
-        this.setState({ comm_req: resources });
+        this.getCommunicationRequests('');
+
     }
     showBundlePreview() {
         let show = this.state.show;
@@ -342,36 +295,55 @@ class TASK extends Component {
         return fhirResponse;
     }
 
-    async getCommunicationRequests(searchParams) {
-        console.log(this.state.fhir_url, 'fhir_url')
+    async getCommunicationRequests() {
+        this.setState({ listLoading: true });
         var tempUrl = this.state.fhir_url;
-        let headers = {
-            "Content-Type": "application/json",
-        }
+        let bundleResources = this.state.bundleResources;
         // const token = await this.getToken(config.payerB.grant_type, config.payerB.client_id, config.payerB.client_secret);
-
         // const token = await createToken(this.state.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
         // if (config.payerB.authorized_fhir) {
         //     // console.log('The token is : ', token, tempUrl);
-        //     headers['Authorization'] = 'Bearer ' + token
         // }
-        const fhirResponse = await fetch(tempUrl + "/Bundle?type=collection&_count=100000", {
+        await fetch(tempUrl + "/Bundle?type=collection&_count=100000", {
             method: "GET",
-            headers: headers
+            headers: {
+                "Content-Type": "application/json"
+                // ,"Authorization" : 'Bearer ' + token
+            }
         }).then(response => {
             console.log("Recieved response", response);
             return response.json();
         }).then((response) => {
-            console.log("----------response", response);
+            this.setState({ listLoading: false });
             if (response.resourceType === "Bundle" && response.hasOwnProperty("entry")) {
-                return response;
+                //search bundle entry
+                response.entry.map((e, k) => {
+                    //entry of bundle with type collection
+                    if (e.resource.hasOwnProperty('entry')) {
+                        e.resource.entry.map((entry, k) => {
+                            // console.log("Resource---",entry.resource,"resource id---",entry.id);
+                            //if entry has payload as key in its resource
+                            if (entry.resource.resourceType === 'CommunicationRequest' && entry.resource.hasOwnProperty('payload')) {
+                                entry.resource.payload.map((p) => {
+                                    if (p.hasOwnProperty('extension')) {
+                                        if (p.extension[0].hasOwnProperty('valueCodeableConcept')) {
+                                            if (p.extension[0].valueCodeableConcept.coding[0].code === 'pcde') {
+                                                bundleResources.push(e.resource)
+                                                this.setState({ bundleResources });
+                                            }
+                                        }
+                                    }
+                                })
+                            }
+                        })
+                    }
+                })
             } else {
-                return null;
+                console.log('no communications')
             }
         }).catch(reason =>
             console.log("No response recieved from the server", reason)
         );
-        return fhirResponse;
     }
 
     async getCarePlans() {
@@ -381,14 +353,7 @@ class TASK extends Component {
             }
         })
     }
-    async getPatientDetails(patient_id, patient_resource, collectionBundle, communication_request) {
-        console.log("Collection Bundle----", collectionBundle);
-        this.setState({ "collectionBundleId": collectionBundle.id })
-        if (communication_request.hasOwnProperty('payload')) {
-            await this.getDocuments(communication_request['payload']);
-        }
-        this.setState({ collectionBundle: collectionBundle })
-
+    resetData() {
         this.setState({ patient_name: "" });
         this.setState({ reviewError: false });
         this.setState({ reviewErrorMsg: "" });
@@ -407,6 +372,8 @@ class TASK extends Component {
         this.setState({ documentList: [] })
         this.setState({ loading: false })
         this.setState({ files: [] })
+    }
+    async getPatientData(patient_resource) {
         let patient_identifier = null
         if (patient_resource.hasOwnProperty("identifier")) {
             patient_identifier = patient_resource.identifier.find(function (ident) {
@@ -420,19 +387,17 @@ class TASK extends Component {
             this.setState({ "reviewError": true })
             this.setState({ "reviewErrorMsg": "Patient should contain identifier with system 'http://hospital.smarthealthit.org'" })
         } else {
+            this.setState({ patient_identifier: patient_identifier })
             var tempUrl = this.state.fhir_url + "/Patient?identifier=" + patient_identifier.value;
-            let token;
-            // const token = await createToken(this.state.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-            let headers = {
-                "Content-Type": "application/json",
-            }
-            await fetch(tempUrl, {
+            // let token = await createToken(this.state.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+            let gotData = await fetch(tempUrl, {
                 method: "GET",
-                headers: headers
+                headers: {
+                    "Content-Type": "application/json",
+                }
             }).then(response => {
                 return response.json();
             }).then((response) => {
-                // console.log("----------response", response);
                 let patient = null;
                 if (response.hasOwnProperty("entry") && response.entry.length > 0) {
                     patient = response.entry[0].resource;
@@ -448,23 +413,41 @@ class TASK extends Component {
                             this.setState({ patient_name: name })
                         }
                     }
-                    if (communication_request.hasOwnProperty('authoredOn')) {
-                        this.setState({ recievedDate: communication_request.authoredOn })
-                    }
-                    this.setState({ communicationRequest: communication_request });
-                    this.getDetails(communication_request, collectionBundle).then(() => {
-                        this.showError()
-                    })
-                    // console.log("patient name----------", this.state.patient_name, this.state.patient.resourceType + "?identifier=" + this.state.patient.identifier[0].value);
+                    return true;
                 } else {
-                    this.setState({ "reviewError": true })
-                    this.setState({ "reviewErrorMsg": "Patient with identifier " + patient_identifier + " was not found" })
+                    return false;
                 }
-            }).catch(reason =>
-                console.log("No response recieved from the server", reason)
-            );
-            this.setState({ form_load: true });
+            }).catch((reason) => {
+                console.log("No response recieved from the server", reason);
+                return false;
+            });
+            return gotData;
         }
+    }
+    async fetchData(patient_id, patient_resource, collectionBundle, communication_request) {
+        this.resetData();
+        // Set CommunicationRequest
+        this.setState({ communicationRequest: communication_request });
+        if (communication_request.hasOwnProperty('authoredOn')) {
+            this.setState({ recievedDate: communication_request.authoredOn })
+        }
+        // Set CollectionBundle
+        this.setState({ "collectionBundleId": collectionBundle.id })
+        if (communication_request.hasOwnProperty('payload')) {
+            await this.getDocuments(communication_request['payload']);
+        }
+        this.setState({ collectionBundle: collectionBundle })
+        this.getPatientData(patient_resource).then((gotData) => {
+            if (gotData) {
+                this.getDetails(communication_request, collectionBundle).then(() => {
+                    this.showError()
+                    this.setState({ form_load: true });
+                })
+            } else {
+                this.setState({ "reviewError": true })
+                this.setState({ "reviewErrorMsg": "Patient with identifier " + this.state.patient_identifier + " was not found" })
+            }
+        })
     }
     randomString() {
         var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
@@ -685,7 +668,7 @@ class TASK extends Component {
                             }
                             Bundle.entry.push({ resource: this.state.patient })
                             if (this.state.patient.hasOwnProperty('generalPractitioner')) {
-                                this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac)=>{
+                                this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac) => {
                                     Bundle.entry.push({ resource: prac })
                                 })
                             }
@@ -747,7 +730,6 @@ class TASK extends Component {
                             Bundle.entry.push({ resource: claim })
                             Bundle.entry.push({ resource: claimResponse })
                             Bundle.entry.push({ resource: this.state.endpoint })
-
                         })
 
 
@@ -1078,8 +1060,8 @@ class TASK extends Component {
 
             ]
         }
-        if(this.state.communicationRequest.hasOwnProperty('id')){
-            
+        if (this.state.communicationRequest.hasOwnProperty('id')) {
+
             commJson.entry[0].resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
         }
         // commJson.entry.push({
@@ -1109,7 +1091,7 @@ class TASK extends Component {
         var communicationUrl = this.state.endpoint.address;
         console.log("")
         console.log("Comm request json---", JSON.stringify(commJson));
-        let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/"+communicationUrl + "/Bundle", {
+        let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/" + communicationUrl + "/Bundle", {
             method: "POST",
             headers: headers,
             body: JSON.stringify(commJson)
@@ -1134,19 +1116,19 @@ class TASK extends Component {
                 // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
                 return response
             }
-            if(response.hasOwnProperty('issue')){
+            if (response.hasOwnProperty('issue')) {
                 this.setState({ loading: false })
                 this.setState({ error: true });
                 this.setState({ errorMsg: response.issue[0].diagnostics })
             }
             // this.setState({response})
             console.log(response, 'res')
-        }).catch((reason) =>{
+        }).catch((reason) => {
             console.log("No response recieved from the server", reason)
             this.setState({ loading: false })
 
             this.setState({ error: true });
-            this.setState({ errorMsg: "No response recieved from the server!!"+reason })
+            this.setState({ errorMsg: "No response recieved from the server!!" + reason })
         }
 
         );
@@ -1391,52 +1373,91 @@ class TASK extends Component {
         );
         return sender;
     }
+    renderList() {
+        return (
+            <table className="table">
+                <thead>
+                    <tr>
+                        <th>Requester</th>
+                        <th>Patient</th>
+                        <th>Received On</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {this.state.listLoading &&
+                        <tr><td colSpan="4">
+                            Loading  <div id="fse" className="spinner visible">
+                                <Loader
+                                    type="ThreeDots"
+                                    color="#333"
+                                    height="15"
+                                    width="15"
+                                />
+                            </div>
+                        </td>
+                        </tr>}
+                    {!this.state.listLoading &&
+                        this.state.bundleResources.map((collectionBundle, i) => {
+                            let commReq = this.getResourceFromBundle(collectionBundle, "CommunicationRequest")
+                            let patientResource = this.getResourceFromBundle(collectionBundle, "Patient")
+                            let requester_org_id = ""
+                            let requester = ""
+                            let requester_org = {}
+                            if (commReq.hasOwnProperty("requester")) {
+                                let requester_org_ref = commReq.requester.reference;
+                                requester_org_id = requester_org_ref.split("/")[1]
+                                requester_org = this.getResourceFromBundle(collectionBundle, "Organization", requester_org_id)
+                            }
+                            if (requester_org) {
+                                requester = requester_org.name;
+                            }
+                            var patient_name = '';
+                            if (patientResource.hasOwnProperty("name")) {
+                                if (patientResource['name'][0].hasOwnProperty('given')) {
+                                    patient_name = patientResource['name'][0]['given'][0] + " " + patientResource['name'][0]['family'];
+                                }
+                            }
+                            let patientId = commReq['subject']['reference'];
+                            if (commReq !== null) {
+                                if (commReq['status'] === 'active') {
+                                    let recievedDate = ''
+                                    if (commReq.hasOwnProperty('authoredOn')) {
+                                        recievedDate = commReq['authoredOn']
+                                    }
+                                    return (<tr key={i}>
+                                        <td>
+                                            {requester}
+                                        </td>
+                                        <td>
+                                            {patient_name}
+                                        </td>
+                                        <td>
+                                            {recievedDate != '' &&
+                                                <span>{recievedDate.substring(0, 10)}</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <button className="btn list-btn" onClick={() => this.fetchData(patientId, patientResource, collectionBundle, commReq)}>
+                                                Review</button>
+                                        </td>
+                                    </tr>)
+                                }
+                            }
 
-    render() {
-        let data = this.state.bundleResources;
+                        })
+                    }
+                </tbody>
+            </table>
+        )
+    }
+    renderData() {
         const files = this.state.files.map(file => (
             <div className='file-block' key={file.name}>
                 <a onClick={() => this.onRemove(file)} className="close-thik" />
                 {file.name}
             </div>
         ))
-        console.log(data, 'how may')
-        let content = data.map((collectionBundle, i) => {
-            // console.log(d, i);
-            let commReq = this.getResourceFromBundle(collectionBundle, "CommunicationRequest")
-            let patientResource = this.getResourceFromBundle(collectionBundle, "Patient")
-            if (commReq !== null) {
-                if (commReq['status'] === 'active') {
-                    let recievedDate = ''
-                    if (commReq.hasOwnProperty('authoredOn')) {
-                        recievedDate = commReq['authoredOn']
-                    }
-                    // console.log(startDate.substring(0,10),'stdate')
-                    if (commReq.hasOwnProperty("subject")) {
-                        let patientId = commReq['subject']['reference'];
-                        if (recievedDate !== '') {
-                            return (
-                                <div key={i} className="main-list">
-                                    {i + 1}.  {commReq['resourceType']} (#{commReq['id']}) for {patientId} , Recieved On ({recievedDate.substring(0, 10)})
-                            <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, patientResource, collectionBundle, commReq)}>
-                                        Review</button>
-                                </div>
-                            )
-                        }
-                        else {
-                            return (
-                                <div key={i} className="main-list">
-                                    {i + 1}.  {commReq['resourceType']} (#{commReq['id']}) for {patientId}
-                                    <button className="btn list-btn" onClick={() => this.getPatientDetails(patientId, patientResource, collectionBundle, commReq)}>
-                                        Review</button>
-                                </div>
-                            )
-                        }
-
-                    }
-                }
-            }
-        });
         let requests = this.state.contentStrings.map((request, key) => {
             if (request) {
                 return (
@@ -1444,65 +1465,119 @@ class TASK extends Component {
                         {request}
                     </div>
                 )
-
             }
         });
-        return (
+        return (<div>
+            <div className="data-label">
+                Patient : <span className="data1">{this.state.patient_name}</span>
+            </div>
+            {this.state.patient.hasOwnProperty('gender') &&
+                <div className="data-label">
+                    Patient Gender : <span className="data1">{this.state.patient.gender}</span>
+                </div>}
+            {/* {this.state.ident &&
+                                <div className="data-label">
+                                    Patient Identifier : <span className="data1">{this.state.ident}</span>
+                                </div>} */}
+            {this.state.patient.hasOwnProperty('birthDate') &&
+                <div className="data-label">
+                    Patient Date of Birth : <span className="data1">{this.state.patient.birthDate}</span>
+                </div>}
+            <div className="data-label">
+                Requester Payer : <span className="data1">{this.state.requesterOrganization.name}</span>
+            </div>
+            {this.state.recievedDate !== '' &&
+                <div className="data-label">
+                    Recieved Date : <span className="data1">{moment(this.state.recievedDate).format(" YYYY-MM-DD, hh:mm a")}</span>
+                </div>
+            }
+            <div className="data-label">
+                Requested for : <span className="data1">{requests}</span>
+            </div>
+            <div className="data-label" style={{ paddingTop: "0px" }}>
+                Select Care Plans to submit :
+            </div>
+            {this.state.carePlanResources.length > 0 &&
+                <div>
+                    {this.state.carePlanResources.map((item, key) => {
+                        return this.renderCarePlans(item, key);
+                    })}
+                </div>
+            }
+            {this.state.carePlanResources !== '' &&
+                <div className="data-label form-row" >
+                    <div className="form-group col-2" >
+                        <button className="btn list-btn" style={{ float: "left" }} onClick={this.showBundlePreview}>
+                            Preview</button>
+                    </div>
+                    {this.state.show &&
 
+                        <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
+                    }
+                </div>
+
+            }
+            <div className="header">
+                Upload Required/Additional Documentation
+                            </div>
+            <div className="drop-box">
+                <section>
+                    <Dropzone
+                        onDrop={this.onDrop.bind(this)}
+                        onFileDialogCancel={this.onCancel.bind(this)
+                        }
+                    >
+                        {({ getRootProps, getInputProps }) => (
+                            <div    >
+                                <div className='drag-drop-box' {...getRootProps()}>
+                                    <input {...getInputProps()} />
+                                    <div className="file-upload-icon"><FontAwesomeIcon icon={faCloudUploadAlt} /></div>
+                                    <div>Drop files here, or click to select files </div>
+                                </div>
+                            </div>
+                        )}
+                    </Dropzone>
+                </section>
+                <div  >{files}</div>
+            </div>
+            {this.state.error &&
+                <div className="decision-card alert-error">
+                    {this.state.errorMsg}
+                </div>
+            }
+            {this.state.success &&
+                <div className="decision-card alert-success">
+                    {this.state.successMsg}
+                </div>
+            }
+            <div className="text-center">
+                <button type="button" onClick={this.startLoading}>Submit
+                                    <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
+                        <Loader
+                            type="Oval"
+                            color="#fff"
+                            height="15"
+                            width="15"
+                        />
+                    </div>
+                </button>
+
+                <NotificationContainer />
+            </div>
+        </div>)
+    }
+    render() {
+        return (
             <React.Fragment>
                 <div>
-                    <header id="inpageheader">
-                        <div className="">
-                            <div id="logo" className="pull-left">
-                                {this.state.currentPayer !== '' &&
-                                    <h1><img style={{ height: "60px", marginTop: "-13px" }} src={logo} /><a href="#intro" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-
-                                    //  <h1><a href="/request" className="scrollto">{this.state.currentPayer.payer_name}</a></h1>
-                                }
-
-                            </div>
-
-                            <nav id="nav-menu-container">
-                                <ul className="nav-menu">
-                                    <li className=" menu-has-children"><a href="">Request</a>
-                                        <ul>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/request"}>Request for documents</a></li>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/care_gaps"}>Request Care Gaps</a></li>
-                                        </ul>
-                                    </li>
-                                    <li className=" menu-active menu-has-children"><a href="">TASKS</a>
-                                        <ul>
-                                            <li ><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>Coverage Documents</a></li>
-                                            <li><a href={window.location.protocol + "//" + window.location.host + "/cdex_documents"}>Clinical Documents</a></li>
-                                            <li className="menu-active"><a href={window.location.protocol + "//" + window.location.host + "/task"}>Submit Coverage Documents</a></li>
-                                        </ul>
-                                    </li>
-                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/pdex_documents"}>List Of CT documents</a></li> */}
-                                    {/* <li><a href={window.location.protocol + "//" + window.location.host + "/task"}>Task</a></li> */}
-                                    <li><a href={window.location.protocol + "//" + window.location.host + "/configuration"}>Configuration</a></li>
-                                    <li className="menu-has-children"><a href="">{sessionStorage.getItem('username')}</a>
-                                        <ul>
-                                            <li><a href="" onClick={this.onClickLogout}>Logout</a></li>
-                                        </ul>
-                                    </li>
-
-                                </ul>
-                            </nav>
-                        </div>
-                    </header>
-
-                    <main id="main" style={{ marginTop: "92px", marginBottom: "100px" }}>
-
+                    <Header payer={this.state.currentPayer.payer_name} />
+                    <main id="main" style={{ marginTop: "92px", paddingBottom: "100px" }}>
                         <div className="section-header">
                             <h3>Transfer Coverage Decision Documents</h3>
                         </div>
-                        {/* <div className="content"></div> */}
                         <div className="form">
-                            <div className="left-form" style={{ paddingLeft: "2%", paddingTop: "1%" }}>
-                                {/* <div style={{ paddingTop: "10px", color: "#8a6d3b", marginBottom: "10px" }}><strong> Requests for Coverage Transition document </strong></div> */}
-                                <div><h2> Requests for Coverage Transition document</h2></div>
-                                {/* <div style={{ paddingTop: "10px", color: "#8a6d3b", marginBottom: "10px" }}><strong> Requests for Coverage Transition document </strong></div> */}
-                                <div>{content}</div>
+                            <div className="left-form" style={{ padding: "2%" }}>
+                                {this.renderList()}
                             </div>
                             {this.state.reviewError &&
                                 <div>
@@ -1510,146 +1585,8 @@ class TASK extends Component {
                                 </div>
                             }
                             {this.state.form_load && !this.state.reviewError &&
-                                <div className="right-form" style={{ paddingTop: "1%", paddingBottom: "100px" }} >
-                                    <div className="data-label">
-                                        Patient : <span className="data1">{this.state.patient_name}</span>
-                                    </div>
-                                    {this.state.patient.hasOwnProperty('gender') &&
-                                        <div className="data-label">
-                                            Patient Gender : <span className="data1">{this.state.patient.gender}</span>
-                                        </div>}
-                                    {/* {this.state.ident &&
-                                    <div className="data-label">
-                                        Patient Identifier : <span className="data1">{this.state.ident}</span>
-                                    </div>} */}
-                                    {this.state.patient.hasOwnProperty('birthDate') &&
-                                        <div className="data-label">
-                                            Patient Date of Birth : <span className="data1">{this.state.patient.birthDate}</span>
-                                        </div>}
-                                    <div className="data-label">
-                                        Requester Payer : <span className="data1">{this.state.requesterOrganization.name}</span>
-                                    </div>
-                                    {/* <div className="data-label">
-                                    Start Date : <span className="data1">{moment(this.state.startDate).format(" YYYY-MM-DD, hh:mm a")}</span>
-                                </div>
-                                <div className="data-label">
-                                    End Date : <span className="data1">{moment(this.state.endDate).format(" YYYY-MM-DD, hh:mm a")}</span>
-                                </div> */}
-                                    {this.state.recievedDate !== '' &&
-                                        <div className="data-label">
-                                            Recieved Date : <span className="data1">{moment(this.state.recievedDate).format(" YYYY-MM-DD, hh:mm a")}</span>
-                                        </div>
-                                    }
-
-                                    <div className="data-label">
-                                        Requested for : <span className="data1">{requests}</span>
-                                    </div>
-                                    {/* {this.state.observationList.length >0 &&
-                                    <div className="data-label">
-                                        Obsersvation : <span className="data1">{observations}</span>
-                                    </div>
-                                } */}
-                                    {/* {this.state.documentList.length >0 &&
-                                    <div className="data-label">
-                                        Documents : <span className="data1">{documents}</span>
-                                    </div>  
-                                } */}
-
-                                    {/* <div className="data-label" style={{ paddingTop: "0px" }}>
-                                    Select documents :
-
-                                </div>
-                                <div>
-                                    {this.state.documentList.map((item, key) => {
-                                        return this.renderDocs(item, key);
-                                    })}
-                                </div> */}
-                                    {/* {this.state.documentList.length === 0 &&
-                                    <div >
-                                        {"No Documents found.Please Upload the required documents"}
-                                    </div>
-                                } */}
-
-                                    <div className="data-label" style={{ paddingTop: "0px" }}>
-                                        Select Care Plans to submit :
-                                </div>
-                                    {this.state.carePlanResources.length > 0 &&
-                                        <div>
-                                            {this.state.carePlanResources.map((item, key) => {
-                                                return this.renderCarePlans(item, key);
-                                            })}
-                                        </div>
-                                    }
-                                    {this.state.carePlanResources !== '' &&
-                                        <div className="form-row" >
-                                            <div className="form-group col-2" >
-                                                <button className="btn list-btn" style={{ float: "left" }} onClick={this.showBundlePreview}>
-                                                    Preview</button>
-                                            </div>
-                                            {this.state.show &&
-
-                                                <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
-                                            }
-                                        </div>
-
-                                    }
-                                    {/* {this.state.error &&
-                                        <div className="decision-card alert-error">
-                                            {this.state.errorMsg}
-                                        </div>
-                                    } */}
-                                    <div className="header">
-                                        Upload Required/Additional Documentation
-                                </div>
-                                    <div className="drop-box">
-                                        <section>
-                                            <Dropzone
-                                                onDrop={this.onDrop.bind(this)}
-                                                onFileDialogCancel={this.onCancel.bind(this)
-                                                }
-                                            >
-                                                {({ getRootProps, getInputProps }) => (
-                                                    <div    >
-                                                        <div className='drag-drop-box' {...getRootProps()}>
-                                                            <input {...getInputProps()} />
-                                                            <div className="file-upload-icon"><FontAwesomeIcon icon={faCloudUploadAlt} /></div>
-                                                            <div>Drop files here, or click to select files </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </Dropzone>
-                                        </section>
-                                        <div  >{files}</div>
-                                    </div>
-                                    {/* {this.state.error &&
-                                    <div className="decision-card alert-error">
-                                        {this.state.errorMsg}
-                                    </div>
-                                } */}
-                                 {this.state.error &&
-                                        <div className="decision-card alert-error">
-                                            {this.state.errorMsg}
-                                        </div>
-                                    }
-                                    {this.state.success &&
-                                        <div className="decision-card alert-success">
-                                            {this.state.successMsg}
-                                        </div>
-                                    }
-                                    <div className="text-center">
-                                        <button type="button" onClick={this.startLoading}>Submit
-                                        <div id="fse" className={"spinner " + (this.state.loading ? "visible" : "invisible")}>
-                                                <Loader
-                                                    type="Oval"
-                                                    color="#fff"
-                                                    height="15"
-                                                    width="15"
-                                                />
-                                            </div>
-                                        </button>
-
-                                        <NotificationContainer />
-                                    </div>
+                                <div className="right-form" style={{ padding: "2%" }} >
+                                    {this.renderData()}
                                 </div>}
                         </div>
                     </main>
@@ -1660,10 +1597,9 @@ class TASK extends Component {
 }
 
 function mapStateToProps(state) {
-    console.log(state);
     return {
         config: state.config,
     };
 };
 
-export default withRouter(connect(mapStateToProps)(TASK));
+export default withRouter(connect(mapStateToProps)(Task));
