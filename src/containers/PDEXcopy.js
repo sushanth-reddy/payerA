@@ -676,7 +676,7 @@ class TASK extends Component {
                             }
                             Bundle.entry.push({ resource: this.state.patient })
                             if (this.state.patient.hasOwnProperty('generalPractitioner')) {
-                                this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac)=>{
+                                this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac) => {
                                     Bundle.entry.push({ resource: prac })
                                 })
                             }
@@ -1031,64 +1031,111 @@ class TASK extends Component {
         }]
         this.setState({ communicationPayload: communicationPayload })
         var commJson = {
-            "resourceType": "Bundle",
-            "type": "collection",
-            "entry": [{
-                "resource": {
-                    "resourceType": "Communication",
-                    "status": "completed",
-                    "subject": {
-                        'reference': "Patient/" + this.state.patient.id
-                    },
-                    "recipient": [
-                        {
-                            "reference": "Organization/" + this.state.requesterOrganization.id
-                        }
-                    ],
-                    "sender": {
-                        "reference": "Organization/" + this.state.senderOrganization.id
-                    },
-                    // "occurrencePeriod": communicationRequest.occurrencePeriod,
-                    "authoredOn": authoredOn,
-                    "category": communicationRequest.category,
-                    // "contained": communicationRequest.contained,
-                    "basedOn": [
-                        {
-                            'reference': "Bundle/" + this.state.collectionBundle.id
-                        }
-                    ],
-                    "identifier": [
-                        {
-                            "system": "http://www.providerco.com/communication",
-                            "value": this.state.communicationIdentifier
-                        }
-                    ],
-                    "payload": payload
-                }
+            "resource": {
+                "resourceType": "Communication",
+                "status": "completed",
+                "subject": {
+                    'reference': "Patient/" + this.state.patient.id
+                },
+                "recipient": [
+                    {
+                        "reference": "Organization/" + this.state.requesterOrganization.id
+                    }
+                ],
+                "sender": {
+                    "reference": "Organization/" + this.state.senderOrganization.id
+                },
+                // "occurrencePeriod": communicationRequest.occurrencePeriod,
+                "authoredOn": authoredOn,
+                "category": communicationRequest.category,
+                // "contained": communicationRequest.contained,
+                "basedOn": [
+                    {
+                        'reference': ''
+                    }
+                ],
+                "identifier": [
+                    {
+                        "system": "http://www.providerco.com/communication",
+                        "value": this.state.communicationIdentifier
+                    }
+                ],
+                "payload": payload
             }
+        }
+        let collectionBundle = this.state.collectionBundle
 
-            ]
-        }
-        if(this.state.communicationRequest.hasOwnProperty('id')){
-            
-            commJson.entry[0].resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
-        }
+        // var commJson = {
+        //     "resourceType": "Bundle",
+        //     "type": "collection",
+        //     "entry": [{
+        //         "resource": {
+        //             "resourceType": "Communication",
+        //             "status": "completed",
+        //             "subject": {
+        //                 'reference': "Patient/" + this.state.patient.id
+        //             },
+        //             "recipient": [
+        //                 {
+        //                     "reference": "Organization/" + this.state.requesterOrganization.id
+        //                 }
+        //             ],
+        //             "sender": {
+        //                 "reference": "Organization/" + this.state.senderOrganization.id
+        //             },
+        //             // "occurrencePeriod": communicationRequest.occurrencePeriod,
+        //             "authoredOn": authoredOn,
+        //             "category": communicationRequest.category,
+        //             // "contained": communicationRequest.contained,
+        //             "basedOn": [
+        //                 {
+        //                     'reference': "Bundle/" + this.state.collectionBundle.id
+        //                 }
+        //             ],
+        //             "identifier": [
+        //                 {
+        //                     "system": "http://www.providerco.com/communication",
+        //                     "value": this.state.communicationIdentifier
+        //                 }
+        //             ],
+        //             "payload": payload
+        //         }
+        //     }
+
+        //     ]
+        // }
+        // if(this.state.communicationRequest.hasOwnProperty('id')){
+
+        //     commJson.entry[0].resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
+        // }
         // commJson.entry.push({
-        //     "resource": this.state.communicationRequest,
-        //     "request": { "method": "POST", "url": "CommunicationRequest" }
+        //     'resource': this.state.patient,
         // })
-        commJson.entry.push({
-            'resource': this.state.patient,
-        })
-        commJson.entry.push({
-            'resource': this.state.requesterOrganization,
-        })
-        commJson.entry.push({
-            'resource': this.state.senderOrganization,
-        })
+        // commJson.entry.push({
+        //     'resource': this.state.requesterOrganization,
+        // })
+        // commJson.entry.push({
+        //     'resource': this.state.senderOrganization,
+        // })
+        if (this.state.communicationRequest.hasOwnProperty('id')) {
 
-        console.log(this.state.patient.id, 'iddd', commJson)
+            commJson.resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
+        }
+        else{
+            let id = this.randomString()
+            collectionBundle.entry.map((entry,k)=>{
+                if(entry.resource.resourceType === 'CommunicationRequest'){
+                    entry.resource.id = id
+                    if(entry.resource.hasOwnProperty('status')){
+                        entry.resource.status = 'completed'
+                    }
+                }
+            })
+            commJson.resource.basedOn[0].reference = "CommunicationRequest/" + id
+        }
 
+        console.log(this.state.patient.id, 'iddd', commJson,this.state.collectionBundle)
+        collectionBundle.entry.push(commJson)
         let headers = {
             "Content-Type": "application/json",
         }
@@ -1099,11 +1146,11 @@ class TASK extends Component {
         // }
         var communicationUrl = this.state.endpoint.address;
         console.log("")
-        console.log("Comm request json---", JSON.stringify(commJson));
-        let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/"+communicationUrl + "/Bundle", {
+        console.log("Comm request json---", JSON.stringify(collectionBundle));
+        let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/" + communicationUrl + "/Bundle", {
             method: "POST",
             headers: headers,
-            body: JSON.stringify(commJson)
+            body: JSON.stringify(collectionBundle)
         }).then(response => {
             return response.json();
         }).then((response) => {
@@ -1112,40 +1159,39 @@ class TASK extends Component {
             // this.UpdateCommunicationRequest();
             if (response.hasOwnProperty('id')) {
                 let communicationId = response.id
-                let senderCommunication = this.createFhirResource(commJson, 'Bundle', this.state.fhir_url).then(() => {
-                    this.setState({ loading: false });
+                // this.UpdateCommunicationRequest(this.state.collectionBundle)
+                // let senderCommunication = this.createFhirResource(commJson, 'Bundle', this.state.fhir_url).then(() => {
+                //     this.setState({ loading: false });
 
-                    this.UpdateCommunicationRequest(this.state.collectionBundle)
+                //     this.UpdateCommunicationRequest(this.state.collectionBundle)
 
-                })
-                console.log(senderCommunication, 'Sender Communication has been Created')
+                // })
+                // console.log(senderCommunication, 'Sender Communication has been Created')
 
                 this.setState({ success: true })
                 this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
                 // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
                 return response
             }
-            if(response.hasOwnProperty('issue')){
+            if (response.hasOwnProperty('issue')) {
                 this.setState({ loading: false })
                 this.setState({ error: true });
                 this.setState({ errorMsg: response.issue[0].diagnostics })
             }
             // this.setState({response})
             console.log(response, 'res')
-        }).catch((reason) =>{
+        }).catch((reason) => {
             console.log("No response recieved from the server", reason)
             this.setState({ loading: false })
 
             this.setState({ error: true });
-            this.setState({ errorMsg: "No response recieved from the server!!"+reason })
+            this.setState({ errorMsg: "No response recieved from the server!!" + reason })
         }
 
         );
-
-
-
-
-
+        this.UpdateCommunicationRequest(this.state.collectionBundle).then(()=>{
+            this.setState({ loading: false });
+        })
 
         // this.props.saveDocuments(this.props.files,fileInputData)
         this.setState({ communicationJson: commJson })
@@ -1579,7 +1625,7 @@ class TASK extends Component {
                                         {this.state.errorMsg}
                                     </div>
                                 } */}
-                                 {this.state.error &&
+                                    {this.state.error &&
                                         <div className="decision-card alert-error">
                                             {this.state.errorMsg}
                                         </div>

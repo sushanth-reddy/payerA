@@ -70,6 +70,7 @@
         "get_payers":"http://cdex.mettles.com/cds/getPayers",
         "get_codes":"http://cdex.mettles.com/cds/getCodes"
       },
+      "save_request_for_document":true,
       "operationPayload":{
         "resourceType": "Parameters",
         "id": "OPERATIONID",

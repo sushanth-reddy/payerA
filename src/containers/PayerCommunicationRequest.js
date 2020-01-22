@@ -352,7 +352,7 @@ class CommunicationRequest extends Component {
 
 
 
-  async createFhirResource(json, resourceName, url, user, claim = false) {
+  async createFhirResource(json, resourceName, url, user) {
     //  console.log("this.state.procedure_code")
     // console.log(this.state.procedure_code)
     // this.setState({ loading: true });
@@ -402,7 +402,7 @@ class CommunicationRequest extends Component {
       }).then((data) => {
         console.log("Data::", data);
         this.setState({ requesterCommRequest: data })
-        if (user == 'otherPayer') {
+        if (user == 'senderPayer') {
           this.setState({ dataLoaded: true })
           var commReqId = data.entry[0].response.location.split('/')[1]
           this.setState({ reqId: commReqId })
@@ -446,22 +446,13 @@ class CommunicationRequest extends Component {
       if (senderOrganizationBundle.hasOwnProperty('entry')) {
         senderOrganization = senderOrganizationBundle.entry[0].resource
       }
-      // var request_identifier = 
       this.setState({ dataLoaded: false, reqId: '' })
       let communicationRequestIdentifier = this.state.communicationRequestIdentifier
-      // let request_identifier = await this.getGUID();
-      // this.setState({communicationRequestIdentifier:request_identifier})
-      let communicationRequestBundle = {
-        "resourceType": "Bundle",
-        "id": 'bundle-transaction',
-        "type": "transaction",
-        "entry": []
-      }
       var date = new Date()
       var currentDateTime = date.toISOString()
       let commRequest = {
         "resourceType": "CommunicationRequest",
-        "id": "1",
+        
         "status": "active",
         "subject": {
           "reference": "Patient/" + this.state.patientResource.id
@@ -507,24 +498,13 @@ class CommunicationRequest extends Component {
         let string = commRequest.payload[0].contentString + " " + this.state.note
         commRequest.payload[0].contentString = string
       }
-      communicationRequestBundle.entry.push({
-        resource: commRequest,
-        'request': {
-          "method": "POST",
-          "url": "CommunicationRequest",
-          "ifNoneExist": "identifier=" + communicationRequestIdentifier
-        }
 
-      })
-
-
-      let requesterCommRequest = await this.createFhirResource(commRequest, 'CommunicationRequest', this.state.currentPayer.payer_end_point, 'payer', true)
-      console.log()
+      // let requesterCommRequest = await this.createFhirResource(commRequest, 'CommunicationRequest', this.state.currentPayer.payer_end_point, 'payer', true)
       let requester_endPoint_identifier = this.getGUID()
       let bundle = {
         "resourceType": "Bundle",
-        "id": 'bundle-transaction',
-        "type": "transaction",
+        "id": 'bundle-collection',
+        "type": "collection",
         "entry": []
       }
       requesterOrganization['endpoint'] = []
@@ -556,40 +536,28 @@ class CommunicationRequest extends Component {
             "reference": "Organization/" + requesterOrganization.id
           },
           "address": this.state.currentPayer.payer_end_point
-        },
-        "request": {
-          "method": "POST",
-          "url": "Endpoint",
-          "ifNoneExist": "identifier=" + requester_endPoint_identifier
         }
       })
       bundle.entry.push({
-        'resource': this.state.patientResource,
-        'request': {
-          "method": "POST",
-          "url": "Patient",
-          "ifNoneExist": "identifier=" + this.state.patientResource.identifier[0].value
-        }
+        'resource': this.state.patientResource
       })
       bundle.entry.push({
-        'resource': requesterOrganization,
-        'request': {
-          "method": "PUT",
-          "url": "Organization?identifier=" + requesterOrganization.identifier[0].value,
-          "ifNoneExist": "identifier=" + requesterOrganization.identifier[0].value
-        }
+        'resource': requesterOrganization
       })
       bundle.entry.push({
-        'resource': senderOrganization,
-        'request': {
-          "method": "POST",
-          "url": "Organization",
-          "ifNoneExist": "identifier=" + senderOrganization.identifier[0].value
-        }
+        'resource': senderOrganization
       })
 
-      let response = await this.createFhirResource(bundle, '', this.state.payer.payer_end_point, 'otherPayer', true).then(() => {
-        this.setState({ loading: false });
+      let response = await this.createFhirResource(bundle, 'Bundle', this.state.payer.payer_end_point, 'senderPayer').then(() => {
+        if(config.save_request_for_docuemnt){
+          this.createFhirResource(bundle,'Bundle',this.state.currentPayer.payer_end_point,'payer').then(()=>{
+            this.setState({ loading: false });
+          })
+        }
+        else{
+          this.setState({ loading: false });
+        }
+        
       })
       console.log(response, 'communciation request created')
       // let res_json = {}

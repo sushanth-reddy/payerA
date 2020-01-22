@@ -1022,63 +1022,62 @@ class Task extends Component {
         }]
         this.setState({ communicationPayload: communicationPayload })
         var commJson = {
-            "resourceType": "Bundle",
-            "type": "collection",
-            "entry": [{
-                "resource": {
-                    "resourceType": "Communication",
-                    "status": "completed",
-                    "subject": {
-                        'reference': "Patient/" + this.state.patient.id
-                    },
-                    "recipient": [
-                        {
-                            "reference": "Organization/" + this.state.requesterOrganization.id
-                        }
-                    ],
-                    "sender": {
-                        "reference": "Organization/" + this.state.senderOrganization.id
-                    },
-                    // "occurrencePeriod": communicationRequest.occurrencePeriod,
-                    "authoredOn": authoredOn,
-                    "category": communicationRequest.category,
-                    // "contained": communicationRequest.contained,
-                    "basedOn": [
-                        {
-                            'reference': "Bundle/" + this.state.collectionBundle.id
-                        }
-                    ],
-                    "identifier": [
-                        {
-                            "system": "http://www.providerco.com/communication",
-                            "value": this.state.communicationIdentifier
-                        }
-                    ],
-                    "payload": payload
-                }
+            "resource": {
+                "resourceType": "Communication",
+                "status": "completed",
+                "subject": {
+                    'reference': "Patient/" + this.state.patient.id
+                },
+                "recipient": [
+                    {
+                        "reference": "Organization/" + this.state.requesterOrganization.id
+                    }
+                ],
+                "sender": {
+                    "reference": "Organization/" + this.state.senderOrganization.id
+                },
+                // "occurrencePeriod": communicationRequest.occurrencePeriod,
+                "authoredOn": authoredOn,
+                "category": communicationRequest.category,
+                // "contained": communicationRequest.contained,
+                "basedOn": [
+                    {
+                        'reference': ''
+                    }
+                ],
+                "identifier": [
+                    {
+                        "system": "http://www.providerco.com/communication",
+                        "value": this.state.communicationIdentifier
+                    }
+                ],
+                "payload": payload
             }
-
-            ]
         }
+        let collectionBundle = this.state.collectionBundle
+
         if (this.state.communicationRequest.hasOwnProperty('id')) {
 
-            commJson.entry[0].resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
+            commJson.resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
         }
+        else{
+            let id = this.randomString()
+            collectionBundle.entry.map((entry,k)=>{
+                if(entry.resource.resourceType === 'CommunicationRequest'){
+                    entry.resource.id = id
+                    if(entry.resource.hasOwnProperty('status')){
+                        entry.resource.status = 'completed'
+                    }
+                }
+            })
+            commJson.resource.basedOn[0].reference = "CommunicationRequest/" + id
+        }
+        console.log(this.state.patient.id, 'iddd', commJson,this.state.collectionBundle)
+        collectionBundle.entry.push(commJson)
         // commJson.entry.push({
         //     "resource": this.state.communicationRequest,
         //     "request": { "method": "POST", "url": "CommunicationRequest" }
         // })
-        commJson.entry.push({
-            'resource': this.state.patient,
-        })
-        commJson.entry.push({
-            'resource': this.state.requesterOrganization,
-        })
-        commJson.entry.push({
-            'resource': this.state.senderOrganization,
-        })
-
-        console.log(this.state.patient.id, 'iddd', commJson)
 
         let headers = {
             "Content-Type": "application/json",
@@ -1090,11 +1089,11 @@ class Task extends Component {
         // }
         var communicationUrl = this.state.endpoint.address;
         console.log("")
-        console.log("Comm request json---", JSON.stringify(commJson));
+        console.log("Comm request json---", JSON.stringify(collectionBundle));
         let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/" + communicationUrl + "/Bundle", {
             method: "POST",
             headers: headers,
-            body: JSON.stringify(commJson)
+            body: JSON.stringify(collectionBundle)
         }).then(response => {
             return response.json();
         }).then((response) => {
@@ -1103,13 +1102,12 @@ class Task extends Component {
             // this.UpdateCommunicationRequest();
             if (response.hasOwnProperty('id')) {
                 let communicationId = response.id
-                let senderCommunication = this.createFhirResource(commJson, 'Bundle', this.state.fhir_url).then(() => {
+                this.UpdateCommunicationRequest(this.state.collectionBundle).then((res)=>{
                     this.setState({ loading: false });
-
-                    this.UpdateCommunicationRequest(this.state.collectionBundle)
-
+                    console.log(res, 'Sender Communication has been Created')
                 })
-                console.log(senderCommunication, 'Sender Communication has been Created')
+               
+                
 
                 this.setState({ success: true })
                 this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
@@ -1132,13 +1130,6 @@ class Task extends Component {
         }
 
         );
-
-
-
-
-
-
-        // this.props.saveDocuments(this.props.files,fileInputData)
         this.setState({ communicationJson: commJson })
 
     }
