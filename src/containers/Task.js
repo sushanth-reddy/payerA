@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Header } from '../components/Header';
 var date = new Date()
 var currentDateTime = date.toISOString()
+var dateFormat = require('dateformat');
 
 const types = {
     error: "errorClass",
@@ -304,7 +305,7 @@ class Task extends Component {
         // if (config.payerB.authorized_fhir) {
         //     // console.log('The token is : ', token, tempUrl);
         // }
-        await fetch(tempUrl + "/Bundle?type=collection&_count=100000", {
+        await fetch(tempUrl + "/Bundle?type=collection&_count=100000&_sort=-_lastUpdated", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json"
@@ -1060,19 +1061,19 @@ class Task extends Component {
 
             commJson.resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
         }
-        else{
+        else {
             let id = this.randomString()
-            collectionBundle.entry.map((entry,k)=>{
-                if(entry.resource.resourceType === 'CommunicationRequest'){
+            collectionBundle.entry.map((entry, k) => {
+                if (entry.resource.resourceType === 'CommunicationRequest') {
                     entry.resource.id = id
-                    if(entry.resource.hasOwnProperty('status')){
+                    if (entry.resource.hasOwnProperty('status')) {
                         entry.resource.status = 'completed'
                     }
                 }
             })
             commJson.resource.basedOn[0].reference = "CommunicationRequest/" + id
         }
-        console.log(this.state.patient.id, 'iddd', commJson,this.state.collectionBundle)
+        console.log(this.state.patient.id, 'iddd', commJson, this.state.collectionBundle)
         collectionBundle.entry.push(commJson)
         // commJson.entry.push({
         //     "resource": this.state.communicationRequest,
@@ -1102,12 +1103,12 @@ class Task extends Component {
             // this.UpdateCommunicationRequest();
             if (response.hasOwnProperty('id')) {
                 let communicationId = response.id
-                this.UpdateCommunicationRequest(this.state.collectionBundle).then((res)=>{
+                this.UpdateCommunicationRequest(this.state.collectionBundle).then((res) => {
                     this.setState({ loading: false });
                     console.log(res, 'Sender Communication has been Created')
                 })
-               
-                
+
+
 
                 this.setState({ success: true })
                 this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
@@ -1369,6 +1370,7 @@ class Task extends Component {
             <table className="table">
                 <thead>
                     <tr>
+                        <th>Request Id</th>
                         <th>Requester</th>
                         <th>Patient</th>
                         <th>Received On</th>
@@ -1412,11 +1414,11 @@ class Task extends Component {
                             let patientId = commReq['subject']['reference'];
                             if (commReq !== null) {
                                 if (commReq['status'] === 'active') {
-                                    let recievedDate = ''
-                                    if (commReq.hasOwnProperty('authoredOn')) {
-                                        recievedDate = commReq['authoredOn']
-                                    }
+
                                     return (<tr key={i}>
+                                        <td>
+                                            {collectionBundle.id}
+                                        </td>
                                         <td>
                                             {requester}
                                         </td>
@@ -1424,13 +1426,29 @@ class Task extends Component {
                                             {patient_name}
                                         </td>
                                         <td>
-                                            {recievedDate != '' &&
-                                                <span>{recievedDate.substring(0, 10)}</span>
-                                            }
+                                            {dateFormat(collectionBundle.meta.lastUpdated, "mm/dd/yyyy")}
                                         </td>
                                         <td>
                                             <button className="btn list-btn" onClick={() => this.fetchData(patientId, patientResource, collectionBundle, commReq)}>
                                                 Review</button>
+                                        </td>
+                                    </tr>)
+                                }
+                                if (commReq['status'] === 'completed') {
+                                    return (<tr key={i}>
+                                        <td>
+                                            {collectionBundle.id}
+                                        </td>
+                                        <td>
+                                            {requester}
+                                        </td>
+                                        <td>
+                                            {patient_name}
+                                        </td>
+                                        <td>
+                                            {dateFormat(collectionBundle.meta.lastUpdated, "mm/dd/yyyy")}
+                                        </td>
+                                        <td>
                                         </td>
                                     </tr>)
                                 }
