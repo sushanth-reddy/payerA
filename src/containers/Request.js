@@ -17,14 +17,14 @@ export class Request extends Component {
                 { 'key': 'request_pcde', 'text': 'Request for Coverage Transition Document', 'value': 'request_document' },
                 { 'key': 'claim', 'text': 'Request for Additional Documents', 'value': 'claim' }
             ],
-            purpose: 'request_document'
+            document_type: 'request_document'
         }
         this.updateStateElement = this.updateStateElement.bind(this)
     }
     handleChange = (e, { value }) => {
         // console.log(this.props, value);
         // this.props.updateCB(this.props.elementName, value)
-        this.setState({ purpose: value })
+        this.setState({ document_type: value })
     }
     async getPayerList() {
         //var url = this.props.config.cds_service.get_payers;
@@ -89,26 +89,26 @@ export class Request extends Component {
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group col-3 offset-1">
-                                        <h4 className="title">Purpose</h4>
+                                        <h4 className="title">Document Type</h4>
                                     </div>
                                     <div className="form-group col-8">
                                         <Dropdown
                                             className={blackBorder}
                                             options={this.state.defaultValues}
-                                            placeholder='Select Purpose'
+                                            placeholder='Select Document Type'
                                             search
                                             selection
                                             fluid
-                                            value={this.state.purpose}
+                                            value={this.state.document_type}
                                             onChange={this.handleChange}
                                         />
-                                        {/* <DropdownPurpose elementName="purpose" updateCB={this.updateStateElement} /> */}
+                                        {/* <Dropdowndocument_type elementName="document_type" updateCB={this.updateStateElement} /> */}
                                     </div>
                                 </div>
-                                {this.state.purpose === 'claim' &&
+                                {this.state.document_type === 'claim' &&
                                     <ProviderCommunicationRequest />
                                 }
-                                {this.state.purpose === 'request_document' &&
+                                {this.state.document_type === 'request_document' &&
                                     <PayerCommunicationRequest />
                                 }
                             </div>

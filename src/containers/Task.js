@@ -105,6 +105,7 @@ class Task extends Component {
         this.getToken = this.getToken.bind(this);
         this.getCarePlans = this.getCarePlans.bind(this);
         this.showBundlePreview = this.showBundlePreview.bind(this);
+        this.validateCommunicationRequest = this.validateCommunicationRequest.bind(this);
 
 
     }
@@ -374,81 +375,144 @@ class Task extends Component {
         this.setState({ loading: false })
         this.setState({ files: [] })
     }
-    async getPatientData(patient_resource) {
-        let patient_identifier = null
-        if (patient_resource.hasOwnProperty("identifier")) {
-            patient_identifier = patient_resource.identifier.find(function (ident) {
-                if (ident.system === "http://hospital.smarthealthit.org") {
-                    return ident.value;
-                }
-            })
-        }
-        console.log("Patientidentifier---", patient_identifier);
-        if (patient_identifier === null || patient_identifier === undefined) {
-            this.setState({ "reviewError": true })
-            this.setState({ "reviewErrorMsg": "Patient should contain identifier with system 'http://hospital.smarthealthit.org'" })
-        } else {
-            this.setState({ patient_identifier: patient_identifier })
-            var tempUrl = this.state.fhir_url + "/Patient?identifier=" + patient_identifier.value;
-            // let token = await createToken(this.state.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
-            let gotData = await fetch(tempUrl, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                }
-            }).then(response => {
-                return response.json();
-            }).then((response) => {
-                let patient = null;
-                if (response.hasOwnProperty("entry") && response.entry.length > 0) {
-                    patient = response.entry[0].resource;
-                }
-                console.log("patient---", patient);
-                if (patient !== null) {
-                    this.setState({ patient: patient });
-                    if (patient.hasOwnProperty("name")) {
-                        var name = '';
-                        if (patient['name'][0].hasOwnProperty('given')) {
-                            name = patient['name'][0]['given'][0] + " " + patient['name'][0]['family'];
-                            console.log("name---" + name);
-                            this.setState({ patient_name: name })
-                        }
+    async getPatientData(patient_identifier) {
+
+        var tempUrl = this.state.fhir_url + "/Patient?identifier=" + patient_identifier.value;
+        // let token = await createToken(this.state.config.payer.grant_type, 'payer', sessionStorage.getItem('username'), sessionStorage.getItem('password'));
+        let gotData = await fetch(tempUrl, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        }).then(response => {
+            return response.json();
+        }).then((response) => {
+            let patient = null;
+            if (response.hasOwnProperty("entry") && response.entry.length > 0) {
+                patient = response.entry[0].resource;
+            }
+            console.log("patient---", patient);
+            if (patient !== null) {
+                this.setState({ patient: patient });
+                if (patient.hasOwnProperty("name")) {
+                    var name = '';
+                    if (patient['name'][0].hasOwnProperty('given')) {
+                        name = patient['name'][0]['given'][0] + " " + patient['name'][0]['family'];
+                        console.log("name---" + name);
+                        this.setState({ patient_name: name })
                     }
-                    return true;
-                } else {
-                    return false;
                 }
-            }).catch((reason) => {
-                console.log("No response recieved from the server", reason);
+                return true;
+            } else {
                 return false;
-            });
-            return gotData;
+            }
+        }).catch((reason) => {
+            console.log("No response recieved from the server", reason);
+            return false;
+        });
+        return gotData;
+    }
+    validateCommunicationRequest(communication_request, patient_resource, collectionBundle) {
+        if (!communication_request.hasOwnProperty('sender')) {
+            this.setState({ "reviewError": true })
+            this.setState({ "reviewErrorMsg": "Request doesn't have Sender Organization's ID mentioned" })
+            return false;
         }
+        else if (!communication_request.hasOwnProperty('recipient')) {
+            this.setState({ "reviewError": true })
+            this.setState({ "reviewErrorMsg": "Request doesn't have Recipient Organization's ID mentioned" })
+            return false;
+        }
+        else if (!communication_request.hasOwnProperty('requester')) {
+            this.setState({ "reviewError": true })
+            this.setState({ "reviewErrorMsg": "Request doesn't have Requester Organization's ID mentioned" })
+            return false;
+        }
+        else if (!communication_request.hasOwnProperty('subject')) {
+            this.setState({ "reviewError": true })
+            this.setState({ "reviewErrorMsg": "Request doesn't have Patient's ID mentioned" })
+            return false;
+        }
+        else if (communication_request.hasOwnProperty('subject')) {
+            if (patient_resource.hasOwnProperty("identifier")) {
+                let patient_identifier = null
+                if (patient_resource.hasOwnProperty("identifier")) {
+                    patient_identifier = patient_resource.identifier.find(function (ident) {
+                        if (ident.system === "http://hospital.smarthealthit.org" || ident.system === "http://hospital.davinciproject.org") {
+                            return ident.value;
+                        }
+                    })
+                }
+                console.log("Patientidentifier---", patient_identifier);
+                if (patient_identifier === null || patient_identifier === undefined) {
+                    this.setState({ "reviewError": true })
+                    this.setState({ "reviewErrorMsg": "Patient should contain identifier with system 'http://hospital.smarthealthit.org'" })
+                    return false
+                } else {
+                    this.setState({ patient_identifier: patient_identifier })
+                    // return true
+                }
+            }
+        }
+        else if (communication_request.hasOwnProperty('sender')) {
+            if (communication_request.sender.hasOwnProperty('reference')) {
+                let senderId = communication_request.sender.referenc.split('/')[1]
+                let sender_org = this.getResourceFromBundle(collectionBundle, "Organization", senderId)
+                if (!sender_org.hasOwnProperty('endpoint')) {
+                    this.setState({ "reviewError": true })
+                    this.setState({ "reviewErrorMsg": " Sender organization's doesn't have Endpoint Mentioned" })
+                    return false
+                }
+                else {
+                    let endpoint = sender_org.endpoint
+                    let endpointId = endpoint[0].reference.split('/')[1]
+                    let endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpointId)
+                    if (!endpoint_resource.hasOwnProperty('address')) {
+                        this.setState({ "reviewError": true })
+                        this.setState({ "reviewErrorMsg": "Sender organization's endpoint doesn't have address which is required" })
+                        return false
+                    }
+
+
+                }
+
+            }
+
+
+        }
+        return true
+        // else {
+        //     return true
+        // }
     }
     async fetchData(patient_id, patient_resource, collectionBundle, communication_request) {
         this.resetData();
         // Set CommunicationRequest
-        this.setState({ communicationRequest: communication_request });
-        if (communication_request.hasOwnProperty('authoredOn')) {
-            this.setState({ recievedDate: communication_request.authoredOn })
-        }
-        // Set CollectionBundle
-        this.setState({ "collectionBundleId": collectionBundle.id })
-        if (communication_request.hasOwnProperty('payload')) {
-            await this.getDocuments(communication_request['payload']);
-        }
-        this.setState({ collectionBundle: collectionBundle })
-        this.getPatientData(patient_resource).then((gotData) => {
-            if (gotData) {
-                this.getDetails(communication_request, collectionBundle).then(() => {
-                    this.showError()
-                    this.setState({ form_load: true });
-                })
-            } else {
-                this.setState({ "reviewError": true })
-                this.setState({ "reviewErrorMsg": "Patient with identifier " + this.state.patient_identifier + " was not found" })
+        let isValidated = this.validateCommunicationRequest(communication_request, patient_resource, collectionBundle)
+        if (isValidated) {
+            this.setState({ communicationRequest: communication_request });
+            if (communication_request.hasOwnProperty('authoredOn')) {
+                this.setState({ recievedDate: communication_request.authoredOn })
             }
-        })
+            // Set CollectionBundle
+            this.setState({ "collectionBundleId": collectionBundle.id })
+            if (communication_request.hasOwnProperty('payload')) {
+                await this.getDocuments(communication_request['payload']);
+            }
+            this.setState({ collectionBundle: collectionBundle })
+            this.getPatientData(this.state.patient_identifier).then((gotData) => {
+                if (gotData) {
+                    this.getDetails(communication_request, collectionBundle).then(() => {
+                        this.showError()
+                        this.setState({ form_load: true });
+                    })
+                } else {
+                    this.setState({ "reviewError": true })
+                    this.setState({ "reviewErrorMsg": "Patient with identifier " + this.state.patient_identifier + " was not found" })
+                }
+            })
+        }
+
     }
     randomString() {
         var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
@@ -620,193 +684,8 @@ class Task extends Component {
                 if (response.hasOwnProperty('entry')) {
                     let carePlanResources = response.entry;
                     this.setState({ carePlanResources: response.entry })
-                    if (carePlanResources !== '') {
-                        carePlanResources.map(async (c, key) => {
-                            console.log(c, 'care paln resource')
-                            if (c.resource.hasOwnProperty('activity')) {
-                                c.resource.activity.map((act) => {
-                                    if (act.hasOwnProperty('detial')) {
-                                        if (act.detail.hasOwnProperty('reasonReference')) {
-                                            if (act.detail.reasonReference.reference.indexOf('Condition') > -1) {
-                                                arr.push(act.detail.reasonReference.reference)
-                                            }
-                                        }
-                                    }
-                                })
-                            }
-                            if (c.resource.hasOwnProperty('addresses')) {
-                                c.resource.addresses.map((address => {
-                                    arr.push(address.reference)
-                                }))
-                            }
-                            let ref = await this.getReferences(c.resource, 'CarePlan')
-                            ref.map((r) => {
-                                Bundle.entry.push(r)
-                            })
-                            conditionResource = await this.getResources(arr[0])
-
-                            claims = await this.getResources('Claim?patient=' + this.state.patient.id)
-                            if (claims.hasOwnProperty('entry')) {
-                                claims.entry.map((c) => {
-                                    if (c.resource.hasOwnProperty('diagnosis')) {
-                                        if (c.resource.diagnosis[0].hasOwnProperty("diagnosisReference")) {
-                                            if (c.resource.diagnosis[0].diagnosisReference.reference === arr[0]) {
-                                                claim = c.resource
-                                            }
-                                        }
-                                    }
-                                })
-                            }
-                            if (claim !== '') {
-                                let cr = await this.getResources('ClaimResponse?request=' + claim.id)
-                                if (cr.hasOwnProperty('entry')) {
-                                    claimResponse = cr.entry[0].resource
-                                }
-                                let ref = await this.getReferences(claim, 'Claim')
-                                ref.map((r) => {
-                                    Bundle.entry.push(r)
-                                })
-                            }
-                            Bundle.entry.push({ resource: this.state.patient })
-                            if (this.state.patient.hasOwnProperty('generalPractitioner')) {
-                                this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac) => {
-                                    Bundle.entry.push({ resource: prac })
-                                })
-                            }
-                            console.log('1234', conditionResource, claim, claimResponse, 'conditionsArray')
-                            compositionJson.section.push(
-                                {
-                                    "code": {
-                                        "coding": [
-                                            {
-                                                "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
-                                                "code": "activeTreatment"
-                                            }
-                                        ]
-                                    },
-                                    "section": [
-                                        {
-                                            "code": {
-                                                "coding": [
-                                                    {
-                                                        "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
-                                                        "code": "treatment"
-                                                    }
-                                                ]
-                                            },
-                                            "entry": [
-                                                {
-                                                    "reference": "CarePlan/" + c.resource.id
-                                                }
-                                            ]
-                                        },
-
-                                    ]
-                                }
-                            )
-                            if (claim !== '' && claimResponse !== '') {
-                                compositionJson.section[key].section.push(
-                                    {
-                                        "code": {
-                                            "coding": [
-                                                {
-                                                    "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
-                                                    "code": "priorCoverage"
-                                                }
-                                            ]
-                                        },
-                                        "entry": [
-                                            {
-                                                "reference": "Claim/" + claim.id
-                                            },
-                                            {
-                                                "reference": "ClaimResponse/" + claimResponse.id
-                                            }
-                                        ]
-                                    }
-                                )
-                            }
-                            Bundle.entry.push({ resource: c.resource })
-                            Bundle.entry.push({ resource: conditionResource })
-                            Bundle.entry.push({ resource: claim })
-                            Bundle.entry.push({ resource: claimResponse })
-                            Bundle.entry.push({ resource: this.state.endpoint })
-                        })
-
-
-                        this.setState({ compositionJson: compositionJson })
-                        Bundle.entry.push({ resource: compositionJson })
-                        let sender_org_id = ""
-                        let sender_org = {}
-                        if (communication_request.hasOwnProperty("sender")) {
-                            let sender_org_ref = communication_request.sender.reference;
-                            sender_org_id = sender_org_ref.split("/")[1]
-                            sender_org = this.getResourceFromBundle(collectionBundle, "Organization", sender_org_id)
-                            console.log("Sender Org---", sender_org);
-                            this.setState({ senderOrganization: sender_org });
-                        }
-                        if (sender_org_id !== "") {
-                            compositionJson.author.push({ "reference": "Organization/" + sender_org_id })
-                        }
-                        if (sender_org) {
-                            Bundle.entry.push({ "resource": sender_org });
-                            let endpoint = ""
-                            let endpoint_id = ""
-                            let endpoint_resource = {}
-                            this.setState({ "sender_name": sender_org.name });
-                            if (sender_org.hasOwnProperty("endpoint")) {
-                                endpoint = sender_org.endpoint
-                                endpoint_id = endpoint[0].reference.split("/")[1]
-                                console.log("Endpoint id---", sender_org.endpoint);
-                                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
-                                if (endpoint_resource) {
-                                    console.log("Endpoint---", endpoint_resource);
-                                    Bundle.entry.push({ "resource": endpoint_resource });
-                                }
-                            }
-                        }
-
-                        let requester_org_id = ""
-                        let requester_org = {}
-                        if (communication_request.hasOwnProperty("requester")) {
-                            let requester_org_ref = communication_request.requester.reference;
-                            requester_org_id = requester_org_ref.split("/")[1]
-                            requester_org = this.getResourceFromBundle(collectionBundle, "Organization", requester_org_id)
-                            console.log("Requester Org---", requester_org);
-                            this.setState({ "requesterOrganization": requester_org });
-                        }
-                        if (requester_org) {
-                            console.log("Inside if requestor---")
-                            let endpoint = ""
-                            let endpoint_id = ""
-                            let endpoint_resource = {}
-                            this.setState({ "sender_name": requester_org.name });
-                            if (requester_org.hasOwnProperty("endpoint")) {
-                                endpoint = requester_org.endpoint
-                                endpoint_id = endpoint[0].reference.split("/")[1]
-                                console.log("Endpoint id---", requester_org.endpoint);
-                                endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
-                                if (endpoint_resource) {
-                                    console.log("Endpoint---", endpoint_resource);
-                                    Bundle.entry.push({ "resource": endpoint_resource });
-                                    this.setState({ "endpoint": endpoint_resource });
-                                }
-                            } else {
-                                this.setState({ "reviewError": true })
-                                this.setState({ "reviewErrorMsg": "There is no endpoint defined in requester!!" })
-                            }
-
-                            Bundle.entry.push({ "resource": requester_org });
-
-                        }
-
-                        console.log(compositionJson, 'compositionJSON', Bundle)
-                        this.setState({ bundle: Bundle })
-                    }
-                    else {
-
-                    }
                 }
+
             })
     }
 
@@ -844,18 +723,17 @@ class Task extends Component {
         )
     }
 
-    onPlanSelect(event) {
-        console.log("event --", event, event.target);
-        // let val = event.target.value;
-        // let selectedPlans = [...this.state.selectedPlans]
-        // let valueIndex = this.state.selectedPlans.indexOf(val)
-        // if (valueIndex == -1) {
-        //     selectedPlans.push(val);
-        // }
-        // else {
-        //     selectedPlans.splice(valueIndex, 1)
-        // }
-        // this.setState({ checkCarePlan: selectedPlans })
+    onPlanSelect(resource) {
+        let selectedPlans = [...this.state.selectedPlans]
+        let valueIndex = this.state.selectedPlans.indexOf(resource)
+        if (valueIndex == -1) {
+            selectedPlans.push(resource);
+        }
+        else {
+            selectedPlans.splice(valueIndex, 1)
+        }
+        this.setState({ selectedPlans: selectedPlans })
+        // this.setState()
     }
 
     renderCarePlans(item, key) {
@@ -869,16 +747,16 @@ class Task extends Component {
         console.log('oh ueah')
         return (<div key={key}>
             <div key={key} style={{ padding: "15px", paddingTop: "0px", paddingBottom: "0px" }}>
-                <label>
-                    <input type="checkbox" name={resource.id}
-                        onChange={this.onPlanSelect} />
+                <input type="checkbox" className="form-check-input" name={resource.id} id={key}
+                    onChange={() => this.onPlanSelect(resource)} />
+                <label className="form-check-label" for={key}>
+                    {categoryName !== '' &&
+                        <span>{resource.resourceType}-{categoryName}</span>
+                    }
+                    {categoryName === '' &&
+                        <span>{resource.resourceType}-{resource.id}</span>
+                    }
                 </label>
-                {categoryName !== '' &&
-                    <span>{resource.resourceType}-{categoryName}</span>
-                }
-                {categoryName === '' &&
-                    <span>{resource.resourceType}-{resource.id}</span>
-                }
 
 
             </div>
@@ -891,7 +769,8 @@ class Task extends Component {
     startLoading() {
         this.setState({ loading: true }, () => {
             if (!this.state.error) {
-                this.submit_info();
+                console.log('selected careplans are', this.state.checkCarePlan, this.state.selectedPlans)
+                // this.submit_info();
             }
         })
     }
@@ -955,8 +834,216 @@ class Task extends Component {
 
         return new_array;
     }
+    getCarePlanInfo(carePlan) {
+        let compositionJSON
+        let arr = []
+        let Bundle=[]
+        let claim=''
+        let claimResponse =''
+        let communication_request=this.state.communicationRequest
+        console.log(carePlan, 'care paln resource')
+        if (carePlan.hasOwnProperty('activity')) {
+            carePlan.activity.map((act) => {
+                if (act.hasOwnProperty('detial')) {
+                    if (act.detail.hasOwnProperty('reasonReference')) {
+                        if (act.detail.reasonReference.reference.indexOf('Condition') > -1) {
+                            arr.push(act.detail.reasonReference.reference)
+                        }
+                    }
+                }
+            })
+        }
+        if (carePlan.hasOwnProperty('addresses')) {
+            carePlan.addresses.map((address => {
+                let index = arr.indexOf(address)
+
+                if(index===-1){
+                    arr.push(address.reference)
+                }
+
+            }))
+        }
+        this.getReferences(carePlan, 'CarePlan').then((ref)=>{
+            ref.map((r) => {
+                Bundle.entry.push(r)
+            })
+        })
+        
+
+        this.getResources('Claim?patient=' + this.state.patient.id).then((claims)=>{
+            if (claims.hasOwnProperty('entry')) {
+                claims.entry.map((c) => {
+                    if (c.resource.hasOwnProperty('diagnosis')) {
+                        if (c.resource.diagnosis[0].hasOwnProperty("diagnosisReference")) {
+                            if (c.resource.diagnosis[0].diagnosisReference.reference === arr[0]) {
+                                claim = c.resource
+                            }
+                        }
+                    }
+                })
+            }
+        })
+        
+        if (claim !== '') {
+            let cr = this.getResources('ClaimResponse?request=' + claim.id).then((cr)=>{
+                if (cr.hasOwnProperty('entry')) {
+                    claimResponse = cr.entry[0].resource
+                }
+            })
+            
+            this.getReferences(claim, 'Claim').then((ref)=>{
+                ref.map((r) => {
+                    Bundle.entry.push(r)
+                })
+            })
+            
+        }
+        Bundle.entry.push({ resource: this.state.patient })
+        if (this.state.patient.hasOwnProperty('generalPractitioner')) {
+            this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac) => {
+                Bundle.entry.push({ resource: prac })
+            })
+        }
+        console.log('1234', claim, claimResponse, 'conditionsArray')
+        // compositionJson.section.push(
+        //     {
+        //         "code": {
+        //             "coding": [
+        //                 {
+        //                     "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+        //                     "code": "activeTreatment"
+        //                 }
+        //             ]
+        //         },
+        //         "section": [
+        //             {
+        //                 "code": {
+        //                     "coding": [
+        //                         {
+        //                             "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+        //                             "code": "treatment"
+        //                         }
+        //                     ]
+        //                 },
+        //                 "entry": [
+        //                     {
+        //                         "reference": "CarePlan/" + c.resource.id
+        //                     }
+        //                 ]
+        //             },
+
+        //         ]
+        //     }
+        // )
+        // if (claim !== '' && claimResponse !== '') {
+        //     compositionJson.section[key].section.push(
+        //         {
+        //             "code": {
+        //                 "coding": [
+        //                     {
+        //                         "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+        //                         "code": "priorCoverage"
+        //                     }
+        //                 ]
+        //             },
+        //             "entry": [
+        //                 {
+        //                     "reference": "Claim/" + claim.id
+        //                 },
+        //                 {
+        //                     "reference": "ClaimResponse/" + claimResponse.id
+        //                 }
+        //             ]
+        //         }
+        //     )
+        // }
+        // Bundle.entry.push({ resource: c.resource })
+        // arr.map((resource,k)=>{
+        //     this.getResources(resource).then((conditionResource)=>{
+        //         Bundle.entry.push({ resource: conditionResource })
+        //     })
+            
+        // })
+        // Bundle.entry.push({ resource: claim })
+        // Bundle.entry.push({ resource: claimResponse })
+        // Bundle.entry.push({ resource: this.state.endpoint })
+
+
+        // this.setState({ compositionJson: compositionJson })
+        // Bundle.entry.push({ resource: compositionJson })
+        // let sender_org_id = ""
+        // let sender_org = {}
+        // if (communication_request.hasOwnProperty("sender")) {
+        //     let sender_org_ref = communication_request.sender.reference;
+        //     sender_org_id = sender_org_ref.split("/")[1]
+        //     sender_org = this.getResourceFromBundle(collectionBundle, "Organization", sender_org_id)
+        //     console.log("Sender Org---", sender_org);
+        //     this.setState({ senderOrganization: sender_org });
+        // }
+        // if (sender_org_id !== "") {
+        //     compositionJson.author.push({ "reference": "Organization/" + sender_org_id })
+        // }
+        // if (sender_org) {
+        //     Bundle.entry.push({ "resource": sender_org });
+        //     let endpoint = ""
+        //     let endpoint_id = ""
+        //     let endpoint_resource = {}
+        //     this.setState({ "sender_name": sender_org.name });
+        //     if (sender_org.hasOwnProperty("endpoint")) {
+        //         endpoint = sender_org.endpoint
+        //         endpoint_id = endpoint[0].reference.split("/")[1]
+        //         console.log("Endpoint id---", sender_org.endpoint);
+        //         endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+        //         if (endpoint_resource) {
+        //             console.log("Endpoint---", endpoint_resource);
+        //             Bundle.entry.push({ "resource": endpoint_resource });
+        //         }
+        //     }
+        // }
+
+        // let requester_org_id = ""
+        // let requester_org = {}
+        // if (communication_request.hasOwnProperty("requester")) {
+        //     let requester_org_ref = communication_request.requester.reference;
+        //     requester_org_id = requester_org_ref.split("/")[1]
+        //     requester_org = this.getResourceFromBundle(collectionBundle, "Organization", requester_org_id)
+        //     console.log("Requester Org---", requester_org);
+        //     this.setState({ "requesterOrganization": requester_org });
+        // }
+        // if (requester_org) {
+        //     console.log("Inside if requestor---")
+        //     let endpoint = ""
+        //     let endpoint_id = ""
+        //     let endpoint_resource = {}
+        //     this.setState({ "sender_name": requester_org.name });
+        //     if (requester_org.hasOwnProperty("endpoint")) {
+        //         endpoint = requester_org.endpoint
+        //         endpoint_id = endpoint[0].reference.split("/")[1]
+        //         console.log("Endpoint id---", requester_org.endpoint);
+        //         endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+        //         if (endpoint_resource) {
+        //             console.log("Endpoint---", endpoint_resource);
+        //             Bundle.entry.push({ "resource": endpoint_resource });
+        //             this.setState({ "endpoint": endpoint_resource });
+        //         }
+        //     } else {
+        //         this.setState({ "reviewError": true })
+        //         this.setState({ "reviewErrorMsg": "There is no endpoint defined in requester!!" })
+        //     }
+
+        //     Bundle.entry.push({ "resource": requester_org });
+
+        // }
+
+        // console.log(compositionJson, 'compositionJSON', Bundle)
+        this.setState({ bundle: Bundle })
+    }
 
     async submit_info() {
+        let carePlanResources = this.state.selectedPlans
+        carePlanResources.map((carePlan, k) => {
+            this.getCarePlanInfo(carePlan)
+        })
         let randomString = this.randomString()
         let bundle = this.state.bundle
         bundle.entry = this.getUnique(bundle.entry)
@@ -1189,9 +1276,8 @@ class Task extends Component {
         // }
         // console.log(obs,'new checked observation')
         // this.setState({content:content})
-
-
     }
+
 
     handleDocumentChange(docs, event) {
         let document = docs.document
@@ -1520,7 +1606,6 @@ class Task extends Component {
                             Preview</button>
                     </div>
                     {this.state.show &&
-
                         <div className="form-group col-10"><pre>{JSON.stringify(this.state.bundle, null, 2)}</pre></div>
                     }
                 </div>

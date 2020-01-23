@@ -549,7 +549,7 @@ class CommunicationRequest extends Component {
       })
 
       let response = await this.createFhirResource(bundle, 'Bundle', this.state.payer.payer_end_point, 'senderPayer').then(() => {
-        if(config.save_request_for_docuemnt){
+        if(!config.save_request_for_docuemnt){
           this.createFhirResource(bundle,'Bundle',this.state.currentPayer.payer_end_point,'payer').then(()=>{
             this.setState({ loading: false });
           })
