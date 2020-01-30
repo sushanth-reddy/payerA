@@ -45,7 +45,7 @@ class Task extends Component {
             check: false,
             documentCheck: false,
             content: [],
-            senderOrganization: {},
+            senderOrganization: '',
             requesterOrganization: {},
             requesterIdentifier: '',
             valueString: '',
@@ -65,6 +65,15 @@ class Task extends Component {
             selectedPlans: [],
             checkCarePlan: false,
             payerName: '',
+            activeClaims: [],
+            supportingClaims: [],
+            activeClaimResponses: [],
+            activeCoverageIds: [],
+            claimResources: [],
+            supportingClaimResponses: [],
+            docBundle: [],
+            referenceArray: [],
+            referenceStrings: [],
             bundle: {
                 "resourceType": "Bundle",
                 "id": "pcde-example",
@@ -76,6 +85,24 @@ class Task extends Component {
                 "timestamp": currentDateTime,
                 "entry": []
             },
+            compositionJSON: {
+                "resourceType": "Composition",
+                "id": 'composition-json',
+                "status": "final",
+                "type": {
+                    "coding": [
+                        {
+                            "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDEDocumentCode",
+                            "code": "pcde"
+                        }
+                    ]
+                },
+                "date": currentDateTime,
+                "author": [],
+                "title": "Payer Coverage Transition Document",
+                "event": [],
+                "section": []
+            },
             communicationIdentifier: this.randomString(),
             fhir_url: '',
             endpoint: '',
@@ -86,7 +113,8 @@ class Task extends Component {
             reviewErrorMsg: "",
             collectionBundleId: "",
             updatedCommReq: '',
-            collectionBundle: ''
+            collectionBundle: '',
+            currentPayerIdentifier: '',
         };
         this.goTo = this.goTo.bind(this);
         this.getCommunicationRequests = this.getCommunicationRequests.bind(this);
@@ -187,7 +215,8 @@ class Task extends Component {
         }
         this.setState({ fhir_url: payer.payer_end_point })
         this.setState({ currentPayer: payer })
-        this.setState({ requesterIdentifier: payer.payer_identifier })
+        this.setState({ currentPayerIdentifier: payer.payer_identifier })
+        this.getOrganization(payer.payer_identifier)
         this.setState({ payerName: payer.payer_name })
         this.getCommunicationRequests('');
 
@@ -357,6 +386,8 @@ class Task extends Component {
     }
     resetData() {
         this.setState({ patient_name: "" });
+        this.setState({ patient: {} });
+        this.setState({ requesterOrganization: {} });
         this.setState({ reviewError: false });
         this.setState({ reviewErrorMsg: "" });
         this.setState({ requester_org: "" });
@@ -374,6 +405,17 @@ class Task extends Component {
         this.setState({ documentList: [] })
         this.setState({ loading: false })
         this.setState({ files: [] })
+        this.setState({ selectedPlans: [] })
+        this.setState({ contentStrings: [] })
+        this.setState({ carePlanResources: '' })
+        this.setState({ recievedDate: '' })
+        this.setState({ claimResources: [] })
+        this.setState({ activeClaimResponses: [] })
+        this.setState({ activeClaims: [] })
+        this.setState({ supportingClaims: [] })
+        this.setState({ supportingClaimResponses: [] })
+        this.setState({ activeCoverageIds: [] })
+
     }
     async getPatientData(patient_identifier) {
 
@@ -413,12 +455,12 @@ class Task extends Component {
         return gotData;
     }
     validateCommunicationRequest(communication_request, patient_resource, collectionBundle) {
-        if (!communication_request.hasOwnProperty('sender')) {
-            this.setState({ "reviewError": true })
-            this.setState({ "reviewErrorMsg": "Request doesn't have Sender Organization's ID mentioned" })
-            return false;
-        }
-        else if (!communication_request.hasOwnProperty('recipient')) {
+        // if (!communication_request.hasOwnProperty('sender')) {
+        //     this.setState({ "reviewError": true })
+        //     this.setState({ "reviewErrorMsg": "Request doesn't have Sender Organization's ID mentioned" })
+        //     return false;
+        // }
+        if (!communication_request.hasOwnProperty('recipient')) {
             this.setState({ "reviewError": true })
             this.setState({ "reviewErrorMsg": "Request doesn't have Recipient Organization's ID mentioned" })
             return false;
@@ -454,32 +496,32 @@ class Task extends Component {
                 }
             }
         }
-        else if (communication_request.hasOwnProperty('sender')) {
-            if (communication_request.sender.hasOwnProperty('reference')) {
-                let senderId = communication_request.sender.referenc.split('/')[1]
-                let sender_org = this.getResourceFromBundle(collectionBundle, "Organization", senderId)
-                if (!sender_org.hasOwnProperty('endpoint')) {
-                    this.setState({ "reviewError": true })
-                    this.setState({ "reviewErrorMsg": " Sender organization's doesn't have Endpoint Mentioned" })
-                    return false
-                }
-                else {
-                    let endpoint = sender_org.endpoint
-                    let endpointId = endpoint[0].reference.split('/')[1]
-                    let endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpointId)
-                    if (!endpoint_resource.hasOwnProperty('address')) {
-                        this.setState({ "reviewError": true })
-                        this.setState({ "reviewErrorMsg": "Sender organization's endpoint doesn't have address which is required" })
-                        return false
-                    }
+        // else if (communication_request.hasOwnProperty('sender')) {
+        //     if (communication_request.sender.hasOwnProperty('reference')) {
+        //         let senderId = communication_request.sender.reference.split('/')[1]
+        //         let sender_org = this.getResourceFromBundle(collectionBundle, "Organization", senderId)
+        //         if (!sender_org.hasOwnProperty('endpoint')) {
+        //             this.setState({ "reviewError": true })
+        //             this.setState({ "reviewErrorMsg": " Sender organization doesn't have Endpoint Mentioned" })
+        //             return false
+        //         }
+        //         else {
+        //             let endpoint = sender_org.endpoint
+        //             let endpointId = endpoint[0].reference.split('/')[1]
+        //             let endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpointId)
+        //             if (!endpoint_resource.hasOwnProperty('address')) {
+        //                 this.setState({ "reviewError": true })
+        //                 this.setState({ "reviewErrorMsg": "Sender organization's endpoint doesn't have address which is required" })
+        //                 return false
+        //             }
 
 
-                }
+        //         }
 
-            }
+        //     }
 
 
-        }
+        // }
         return true
         // else {
         //     return true
@@ -545,73 +587,271 @@ class Task extends Component {
         }
     }
 
-    async getReferences(object, resource) {
-        let referenceArray = []
+    async getReferences(resources, resourceType) {
+        let referenceArray = this.state.referenceArray
+        let referenceStrings = this.state.referenceStrings
         // console.log(object, 'objjj')
-        if (resource === 'Claim') {
-            if (object.hasOwnProperty('enterer')) {
-                let enterer = await this.getResources(object.enterer.reference)
-                referenceArray.push({ resource: enterer })
-            }
-            if (object.hasOwnProperty('provider')) {
-                let provider = await this.getResources(object.provider.reference)
-                referenceArray.push({ resource: provider })
-            }
-            if (object.hasOwnProperty('insurer')) {
-                let insurer = await this.getResources(object.insurer.reference)
-                referenceArray.push({ resource: insurer })
-            }
-            if (object.hasOwnProperty('procedure')) {
-                let procedure = await this.getResources(object.procedure[0].procedureReference.reference)
-                // if(procedure.hasOwnProperty('encounter')){
-                //     let encounter = await this.getResources(procedure.encounter.reference)
-                //     referenceArray.push({resource:encounter})
+        if (resourceType === 'Claim') {
+            resources.map((object) => {
+                if (object.hasOwnProperty('enterer')) {
+                    if (object.enterer.hasOwnProperty('reference')) {
 
-                // }
-                referenceArray.push({ resource: procedure })
-            }
-            if (object.hasOwnProperty('encounter')) {
-                await this.getResources(object.encounter.reference).then((encounter) => {
-                    if (encounter.hasOwnProperty('participant')) {
-                        if (encounter.participant[0].hasOwnProperty('individual')) {
-                            this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
-                                referenceArray.push({ resource: practitioner })
-                            });
+                        if (referenceStrings.indexOf(object.enterer.reference) === -1) {
+                            referenceStrings.push(object.enterer.reference)
+                            this.setState({ referenceStrings })
+                            let enterer = this.getResources(object.enterer.reference).then((enterer) => {
+                                referenceArray.push({ resource: enterer })
+                                this.setState({ referenceArray })
+                            })
                         }
-                    }
-                    referenceArray.push({ resource: encounter })
-                })
-            }
-            if (object.hasOwnProperty('insurance')) {
-                if (object.insurance[0].hasOwnProperty('coverage')) {
-                    if (object.insurance[0].coverage.hasOwnProperty('reference')) {
-                        let coverage = await this.getResources(object.insurance[0].coverage)
-                        referenceArray.push({ resource: coverage })
                     }
 
                 }
+                if (object.hasOwnProperty('provider')) {
+                    if (object.provider.hasOwnProperty('reference')) {
 
+                        if (referenceStrings.indexOf(object.provider.reference) === -1) {
+                            referenceStrings.push(object.provider.reference)
+                            let provider = this.getResources(object.provider.reference).then((provider) => {
+                                referenceArray.push({ resource: provider })
+                                this.setState({ referenceArray })
+
+                            })
+                        }
+                    }
+                }
+                if (object.hasOwnProperty('insurer')) {
+                    if (object.insurer.hasOwnProperty('reference')) {
+                        if (referenceStrings.indexOf(object.insurer.reference) === -1) {
+                            referenceStrings.push(object.insurer.reference)
+                            let insurer = this.getResources(object.insurer.reference).then((insurer) => {
+                                referenceArray.push({ resource: insurer })
+                                this.setState({ referenceArray })
+
+                            })
+                        }
+                    }
+                }
+                if (object.hasOwnProperty('procedure')) {
+                    object.procedure.map((p) => {
+                        if (p.hasOwnProperty('procedureReference')) {
+                            if (p.procedureReference.hasOwnProperty('reference')) {
+                                if (referenceStrings.indexOf(p.procedureReference.reference) === -1) {
+                                    referenceStrings.push(p.procedureReference.reference)
+                                    let procedure = this.getResources(p.procedureReference.reference).then((procedure) => {
+                                        referenceArray.push({ resource: procedure })
+                                        this.setState({ referenceArray })
+
+                                    })
+                                }
+                            }
+                        }
+                    })
+                }
+                if (object.hasOwnProperty('encounter')) {
+                    if (object.encounter.hasOwnProperty('reference')) {
+
+                        if (referenceStrings.indexOf(object.encounter.reference) === -1) {
+                            referenceStrings.push(object.encounter.reference)
+                            this.getResources(object.encounter.reference).then((encounter) => {
+                                this.getReferences(encounter, 'Encounter').then((arr) => {
+                                    // referenceArray.concat(arr)
+                                    // this.setState({referenceArray})
+                                })
+                                referenceArray.push({ resource: encounter })
+                                this.setState({ referenceArray })
+
+                            })
+                        }
+                    }
+
+                }
+                if (object.hasOwnProperty('insurance')) {
+                    object.insurance.map((ins) => {
+                        if (ins.hasOwnProperty('coverage')) {
+                            if (ins.coverage.hasOwnProperty('reference')) {
+                                if (referenceStrings.indexOf(ins.coverage.reference) === -1) {
+                                    referenceStrings.push(ins.coverage.reference)
+                                    let coverage = this.getResources(ins.coverage.reference).then((coverage) => {
+                                        referenceArray.push({ resource: coverage })
+                                        this.setState({ referenceArray })
+
+                                    })
+                                }
+                            }
+
+                        }
+                    })
+
+                }
+                if (object.hasOwnProperty('prescription')) {
+                    if (object.prescription.hasOwnProperty('extension')) {
+                        object.prescription.extension.map((ext) => {
+                            if (ext.hasOwnProperty('valueReference')) {
+                                if (ext.valueReference.hasOwnProperty('reference')) {
+                                    if (referenceStrings.indexOf(ext.valueReference.reference) === -1) {
+                                        referenceStrings.push(ext.valueReference.reference)
+                                        let coverage = this.getResources(ext.valueReference.reference).then((serviceRequest) => {
+
+                                            if (serviceRequest.hasOwnProperty('performer')) {
+                                                serviceRequest.performer.map((p) => {
+                                                    if (p.hasOwnProperty('reference')) {
+                                                        if (referenceStrings.indexOf(p.reference) === -1) {
+                                                            referenceStrings.push(p.reference)
+                                                            let practitionerRole = this.getResources(p.reference).then((practitionerRole) => {
+                                                                if (practitionerRole.hasOwnProperty('practitioner')) {
+                                                                    if (practitionerRole.practitioner.hasOwnProperty('reference')) {
+                                                                        if (referenceStrings.indexOf(practitionerRole.practitioner.reference) === -1) {
+                                                                            referenceStrings.push(practitionerRole.practitioner.reference)
+                                                                            let practitioner = this.getResources(practitionerRole.practitioner.reference).then((practitioner) => {
+                                                                                referenceArray.push({ resource: practitioner })
+                                                                            })
+                                                                        }
+                                                                    }
+                                                                }
+                                                                referenceArray.push({ resource: practitionerRole })
+                                                                this.setState({ referenceArray })
+
+                                                            })
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                            referenceArray.push({ resource: serviceRequest })
+                                            this.setState({ referenceArray })
+
+                                        })
+                                    }
+                                }
+                            }
+                        })
+                    }
+
+
+                }
+            })
+
+        }
+        else if (resourceType === "CarePlan") {
+            resources.map((object) => {
+                if (object.hasOwnProperty('encounter')) {
+                    if (referenceStrings.indexOf(object.encounter.reference) === -1) {
+                        referenceStrings.push(object.encounter.reference)
+                        this.getResources(object.encounter.reference).then((encounter) => {
+                            if (encounter.hasOwnProperty('participant')) {
+                                if (encounter.participant[0].hasOwnProperty('individual')) {
+                                    if (referenceStrings.indexOf(encounter.participant[0].individual.reference) === -1) {
+                                        referenceStrings.push(encounter.participant[0].individual.reference)
+                                        this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
+                                            referenceArray.push({ resource: practitioner })
+                                            this.setState({ referenceArray })
+
+                                        });
+                                    }
+                                }
+                            }
+                            referenceArray.push({ resource: encounter })
+                            this.setState({ referenceArray })
+
+                        })
+                    }
+
+                }
+                if (object.hasOwnProperty('careTeam')) {
+                    if (referenceStrings.indexOf(object.careTeam[0].reference) === -1) {
+                        referenceStrings.push(object.careTeam[0].reference)
+                        let careTeam = this.getResources(object.careTeam[0].reference).then((careTeam) => {
+                            referenceArray.push({ resource: careTeam })
+                            this.setState({ referenceArray })
+
+                        })
+
+                    }
+                }
+                if (object.hasOwnProperty('addresses')) {
+                    object.addresses.map(async (address) => {
+                        if (address.hasOwnProperty('reference')) {
+                            if (referenceStrings.indexOf(address.reference) === -1) {
+                                referenceStrings.push(address.reference)
+                                await this.getResources(address.reference).then((condition) => {
+                                    this.getReferences(condition, 'Condition')
+                                    referenceArray.push({ resource: condition })
+                                    this.setState({ referenceArray })
+                                })
+                            }
+                        }
+
+                    })
+                }
+            })
+
+        }
+        else if (resourceType === 'Coverage') {
+            if (resources.hasOwnProperty('payor')) {
+                resources.payor.map((p) => {
+                    if (p.hasOwnProperty('reference')) {
+                        if (referenceStrings.indexOf(p.reference) === -1) {
+                            referenceStrings.push(p.reference)
+                            this.getResources(p.reference).then((response) => {
+                                referenceArray.push({ resource: response })
+                                if (response.hasOwnProperty('evidence')) {
+                                    response.evidence.map((e) => {
+                                        if (e.hasOwnProperty('detail')) {
+                                            e.detail.map((d) => {
+                                                if (d.hasOwnProperty('reference')) {
+                                                    if (referenceStrings.indexOf(d.reference) === -1) {
+                                                        referenceStrings.push(d.reference)
+                                                        this.getResources(d.reference).then((documentReference) => {
+                                                            referenceArray.push({ resource: documentReference })
+                                                            this.setState({ referenceArray })
+                                                        })
+
+                                                    }
+                                                }
+                                            })
+                                        }
+                                    })
+                                }
+                                this.setState({ referenceArray })
+
+                            })
+                        }
+                    }
+
+                })
             }
 
         }
-        else if (resource === "CarePlan") {
-            if (object.hasOwnProperty('encounter')) {
-                await this.getResources(object.encounter.reference).then((encounter) => {
-                    if (encounter.hasOwnProperty('participant')) {
-                        if (encounter.participant[0].hasOwnProperty('individual')) {
-                            this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
-                                referenceArray.push({ resource: practitioner })
-                            });
-                        }
-                    }
-                    referenceArray.push({ resource: encounter })
-                })
+        else if (resourceType === 'Encounter') {
+            if (resources.hasOwnProperty('participant')) {
+                if (resources.participant[0].hasOwnProperty('individual')) {
+                    this.getResources(resources.participant[0].individual.reference).then((practitioner) => {
+                        referenceArray.push({ resource: practitioner })
+                        this.setState({ referenceArray })
+                    });
+                }
+            }
+        }
+        else if (resourceType === 'Condition') {
+            if (resources.hasOwnProperty('evidence')) {
+                resources.evidence.map((e) => {
+                    if (e.hasOwnProperty('detail')) {
+                        e.detail.map((d) => {
+                            if (d.hasOwnProperty('reference')) {
+                                if (referenceStrings.indexOf(d.reference) === -1) {
+                                    referenceStrings.push(d.reference)
+                                    this.getResources(d.reference).then((response) => {
+                                        referenceArray.push({ resource: response })
+                                        this.setState({ referenceArray })
 
+                                    })
+                                }
+                            }
+                        })
+                    }
+                })
             }
-            if (object.hasOwnProperty('careTeam')) {
-                let careTeam = await this.getResources(object.careTeam[0].reference)
-                referenceArray.push({ resource: careTeam })
-            }
+
         }
 
         return referenceArray
@@ -682,12 +922,245 @@ class Task extends Component {
         await this.getResources('CarePlan?status=active&subject=' + this.state.patient.id)
             .then((response) => {
                 if (response.hasOwnProperty('entry')) {
-                    let carePlanResources = response.entry;
+                    // let carePlanResources = response.entry;
                     this.setState({ carePlanResources: response.entry })
                 }
 
             })
+        this.getResources('Claim?status=active&patient=' + this.state.patient.id).then((response) => {
+            if (response.hasOwnProperty('entry')) {
+                // let claimResources = response.entry;
+                this.setState({ claimResources: response.entry })
+            }
+        })
     }
+
+    // async getDetails(communication_request, collectionBundle) {
+    //     var date = new Date()
+    //     var currentDateTime = date.toISOString()
+    //     let Bundle = this.state.bundle
+    //     let compositionJson = {
+    //         "resourceType": "Composition",
+    //         "id": 'composition-json',
+    //         "status": "final",
+    //         "type": {
+    //             "coding": [
+    //                 {
+    //                     "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDEDocumentCode",
+    //                     "code": "pcde"
+    //                 }
+    //             ]
+    //         },
+    //         "subject": {
+    //             "reference": "Patient/" + this.state.patient.id
+    //         },
+    //         "date": currentDateTime,
+    //         "author": [],
+    //         "title": "Example PCDE Document for Diabetes patient",
+    //         "event": [],
+    //         "section": []
+    //     }
+
+
+    //     var arr = []
+    //     let conditionResource = ''
+    //     var claims = ''
+    //     let claim = ''
+    //     let claimResponse = ''
+    //     await this.getResources('CarePlan?status=active&subject=' + this.state.patient.id)
+    //         .then((response) => {
+    //             if (response.hasOwnProperty('entry')) {
+    //                 let carePlanResources = response.entry;
+    //                 this.setState({ carePlanResources: response.entry })
+    //                 if (carePlanResources !== '') {
+    //                     carePlanResources.map(async (c, key) => {
+    //                         console.log(c, 'care paln resource')
+    //                         if (c.resource.hasOwnProperty('activity')) {
+    //                             c.resource.activity.map((act) => {
+    //                                 if (act.hasOwnProperty('detial')) {
+    //                                     if (act.detail.hasOwnProperty('reasonReference')) {
+    //                                         if (act.detail.reasonReference.reference.indexOf('Condition') > -1) {
+    //                                             arr.push(act.detail.reasonReference.reference)
+    //                                         }
+    //                                     }
+    //                                 }
+    //                             })
+    //                         }
+    //                         if (c.resource.hasOwnProperty('addresses')) {
+    //                             c.resource.addresses.map((address => {
+    //                                 arr.push(address.reference)
+    //                             }))
+    //                         }
+    //                         let ref = await this.getReferences(c.resource, 'CarePlan')
+    //                         ref.map((r) => {
+    //                             Bundle.entry.push(r)
+    //                         })
+    //                         conditionResource = await this.getResources(arr[0])
+
+    //                         claims = await this.getResources('Claim?patient=' + this.state.patient.id)
+    //                         if (claims.hasOwnProperty('entry')) {
+    //                             claims.entry.map((c) => {
+    //                                 if (c.resource.hasOwnProperty('diagnosis')) {
+    //                                     if (c.resource.diagnosis[0].hasOwnProperty("diagnosisReference")) {
+    //                                         if (c.resource.diagnosis[0].diagnosisReference.reference === arr[0]) {
+    //                                             claim = c.resource
+    //                                         }
+    //                                     }
+    //                                 }
+    //                             })
+    //                         }
+    //                         if (claim !== '') {
+    //                             let cr = await this.getResources('ClaimResponse?request=' + claim.id)
+    //                             if (cr.hasOwnProperty('entry')) {
+    //                                 claimResponse = cr.entry[0].resource
+    //                             }
+    //                             let ref = await this.getReferences(claim, 'Claim')
+    //                             ref.map((r) => {
+    //                                 Bundle.entry.push(r)
+    //                             })
+    //                         }
+    //                         Bundle.entry.push({ resource: this.state.patient })
+    //                         if (this.state.patient.hasOwnProperty('generalPractitioner')) {
+    //                             this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac) => {
+    //                                 Bundle.entry.push({ resource: prac })
+    //                             })
+    //                         }
+    //                         console.log('1234', conditionResource, claim, claimResponse, 'conditionsArray')
+    //                         compositionJson.section.push(
+    //                             {
+    //                                 "code": {
+    //                                     "coding": [
+    //                                         {
+    //                                             "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+    //                                             "code": "activeTreatment"
+    //                                         }
+    //                                     ]
+    //                                 },
+    //                                 "section": [
+    //                                     {
+    //                                         "code": {
+    //                                             "coding": [
+    //                                                 {
+    //                                                     "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+    //                                                     "code": "treatment"
+    //                                                 }
+    //                                             ]
+    //                                         },
+    //                                         "entry": [
+    //                                             {
+    //                                                 "reference": "CarePlan/" + c.resource.id
+    //                                             }
+    //                                         ]
+    //                                     },
+
+    //                                 ]
+    //                             }
+    //                         )
+    //                         if (claim !== '' && claimResponse !== '') {
+    //                             compositionJson.section[key].section.push(
+    //                                 {
+    //                                     "code": {
+    //                                         "coding": [
+    //                                             {
+    //                                                 "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+    //                                                 "code": "priorCoverage"
+    //                                             }
+    //                                         ]
+    //                                     },
+    //                                     "entry": [
+    //                                         {
+    //                                             "reference": "Claim/" + claim.id
+    //                                         },
+    //                                         {
+    //                                             "reference": "ClaimResponse/" + claimResponse.id
+    //                                         }
+    //                                     ]
+    //                                 }
+    //                             )
+    //                         }
+    //                         Bundle.entry.push({ resource: c.resource })
+    //                         Bundle.entry.push({ resource: conditionResource })
+    //                         Bundle.entry.push({ resource: claim })
+    //                         Bundle.entry.push({ resource: claimResponse })
+    //                         Bundle.entry.push({ resource: this.state.endpoint })
+    //                     })
+
+
+    //                     this.setState({ compositionJson: compositionJson })
+    //                     Bundle.entry.push({ resource: compositionJson })
+    //                     let sender_org_id = ""
+    //                     let sender_org = ''
+    //                     if (communication_request.hasOwnProperty("sender")) {
+    //                         let sender_org_ref = communication_request.sender.reference;
+    //                         sender_org_id = sender_org_ref.split("/")[1]
+    //                         sender_org = this.getResourceFromBundle(collectionBundle, "Organization", sender_org_id)
+    //                         console.log("Sender Org---", sender_org);
+    //                         this.setState({ senderOrganization: sender_org });
+    //                     }
+    //                     if (sender_org_id !== "") {
+    //                         compositionJson.author.push({ "reference": "Organization/" + sender_org_id })
+    //                     }
+    //                     if (sender_org!=='') {
+    //                         Bundle.entry.push({ "resource": sender_org });
+    //                         let endpoint = ""
+    //                         let endpoint_id = ""
+    //                         let endpoint_resource = {}
+    //                         this.setState({ "sender_name": sender_org.name });
+    //                         if (sender_org.hasOwnProperty("endpoint")) {
+    //                             endpoint = sender_org.endpoint
+    //                             endpoint_id = endpoint[0].reference.split("/")[1]
+    //                             console.log("Endpoint id---", sender_org.endpoint);
+    //                             endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+    //                             if (endpoint_resource) {
+    //                                 console.log("Endpoint---", endpoint_resource);
+    //                                 Bundle.entry.push({ "resource": endpoint_resource });
+    //                             }
+    //                         }
+    //                     }
+
+    //                     let requester_org_id = ""
+    //                     let requester_org = {}
+    //                     if (communication_request.hasOwnProperty("requester")) {
+    //                         let requester_org_ref = communication_request.requester.reference;
+    //                         requester_org_id = requester_org_ref.split("/")[1]
+    //                         requester_org = this.getResourceFromBundle(collectionBundle, "Organization", requester_org_id)
+    //                         console.log("Requester Org---", requester_org);
+    //                         this.setState({ "requesterOrganization": requester_org });
+    //                     }
+    //                     if (requester_org) {
+    //                         console.log("Inside if requestor---")
+    //                         let endpoint = ""
+    //                         let endpoint_id = ""
+    //                         let endpoint_resource = {}
+    //                         this.setState({ "sender_name": requester_org.name });
+    //                         if (requester_org.hasOwnProperty("endpoint")) {
+    //                             endpoint = requester_org.endpoint
+    //                             endpoint_id = endpoint[0].reference.split("/")[1]
+    //                             console.log("Endpoint id---", requester_org.endpoint);
+    //                             endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+    //                             if (endpoint_resource) {
+    //                                 console.log("Endpoint---", endpoint_resource);
+    //                                 Bundle.entry.push({ "resource": endpoint_resource });
+    //                                 this.setState({ "endpoint": endpoint_resource });
+    //                             }
+    //                         } else {
+    //                             this.setState({ "reviewError": true })
+    //                             this.setState({ "reviewErrorMsg": "There is no endpoint defined in requester!!" })
+    //                         }
+
+    //                         Bundle.entry.push({ "resource": requester_org });
+
+    //                     }
+
+    //                     console.log(compositionJson, 'compositionJSON', Bundle)
+    //                     this.setState({ bundle: Bundle })
+    //                 }
+    //                 else {
+
+    //                 }
+    //             }
+    //         })
+    // }
 
 
     onDocSelect(event) {
@@ -747,7 +1220,7 @@ class Task extends Component {
         console.log('oh ueah')
         return (<div key={key}>
             <div key={key} style={{ padding: "15px", paddingTop: "0px", paddingBottom: "0px" }}>
-                <input type="checkbox" className="form-check-input" name={resource.id} id={key}
+                <input type="checkbox" className="form-check-input" name={resource.id} id={key} checked={this.state.selectedPlans.find((plan) => plan.id === resource.id)}
                     onChange={() => this.onPlanSelect(resource)} />
                 <label className="form-check-label" for={key}>
                     {categoryName !== '' &&
@@ -769,8 +1242,8 @@ class Task extends Component {
     startLoading() {
         this.setState({ loading: true }, () => {
             if (!this.state.error) {
-                console.log('selected careplans are', this.state.checkCarePlan, this.state.selectedPlans)
-                // this.submit_info();
+                // console.log('selected careplans are', this.state.checkCarePlan, this.state.selectedPlans)
+                this.submit_info();
             }
         })
     }
@@ -826,21 +1299,41 @@ class Task extends Component {
         let new_array = []
         let ids = []
         for (var i = 0; i < arr.length; i++) {
-            if (ids.indexOf(arr[i].resource.id) == -1) {
-                ids.push(arr[i].resource.id)
-                new_array.push({ 'resource': arr[i].resource })
+            if (ids.indexOf(arr[i].id) == -1) {
+                ids.push(arr[i].id)
+                // new_array.push({ 'resource': arr[i].resource })
+                new_array.push(arr[i])
             }
         }
 
         return new_array;
     }
-    getCarePlanInfo(carePlan) {
+    getOrganization(identifier) {
+        this.getResources('Organization?identifier=' + identifier).then((bundle) => {
+            if (bundle.hasOwnProperty('entry')) {
+                let senderOrganization = bundle.entry[0].resource
+                this.setState({ senderOrganization })
+            }
+        })
+
+    }
+    getUniqueReferences(arr) {
+        let new_array = []
+        let ids = []
+        for (var i = 0; i < arr.length; i++) {
+            if (ids.indexOf(arr[i]) == -1) {
+                ids.push(arr[i])
+                new_array.push(arr[i])
+            }
+        }
+        return new_array;
+    }
+    getCarePlanInfo(carePlan, claimResources) {
         let compositionJSON
         let arr = []
-        let Bundle=[]
-        let claim=''
-        let claimResponse =''
-        let communication_request=this.state.communicationRequest
+        let Bundle = []
+        let claimResponse = ''
+        let communication_request = this.state.communicationRequest
         console.log(carePlan, 'care paln resource')
         if (carePlan.hasOwnProperty('activity')) {
             carePlan.activity.map((act) => {
@@ -856,55 +1349,81 @@ class Task extends Component {
         if (carePlan.hasOwnProperty('addresses')) {
             carePlan.addresses.map((address => {
                 let index = arr.indexOf(address)
-
-                if(index===-1){
+                if (index === -1) {
                     arr.push(address.reference)
                 }
 
             }))
         }
-        this.getReferences(carePlan, 'CarePlan').then((ref)=>{
-            ref.map((r) => {
-                Bundle.entry.push(r)
-            })
-        })
-        
-
-        this.getResources('Claim?patient=' + this.state.patient.id).then((claims)=>{
-            if (claims.hasOwnProperty('entry')) {
-                claims.entry.map((c) => {
-                    if (c.resource.hasOwnProperty('diagnosis')) {
-                        if (c.resource.diagnosis[0].hasOwnProperty("diagnosisReference")) {
-                            if (c.resource.diagnosis[0].diagnosisReference.reference === arr[0]) {
-                                claim = c.resource
-                            }
+        // this.getReferences(carePlan, 'CarePlan').then((ref)=>{
+        //     ref.map((r) => {
+        //         Bundle.push(r)
+        //     })
+        // })
+        console.log(arr, 'conditions')
+        let referenceArray = this.getUniqueReferences(arr)
+        console.log('unique conditions', referenceArray)
+        let activeClaims = this.state.activeClaims
+        let activeCoverageIds = this.state.activeCoverageIds
+        let supportingClaims = this.state.supportingClaims
+        claimResources.map((claim) => {
+            console.log('cccccc', claim)
+            if (claim.resource.hasOwnProperty('diagnosis')) {
+                if (claim.resource.diagnosis[0].hasOwnProperty("diagnosisReference")) {
+                    if (referenceArray.indexOf(claim.resource.diagnosis[0].diagnosisReference.reference) >= 0) {
+                        if (claim.resource.hasOwnProperty('insurance')) {
+                            claim.resource.insurance.map((ins) => {
+                                if (ins.hasOwnProperty('coverage')) {
+                                    if (ins.coverage.hasOwnProperty('reference')) {
+                                        activeCoverageIds.push(ins.coverage.reference)
+                                    }
+                                }
+                            })
                         }
+                        console.log(claim.resource, 'active')
+                        activeClaims.push(claim.resource)
+
                     }
-                })
+                    else {
+                        console.log('supporting', claim.resource)
+                        supportingClaims.push(claim.resource)
+                    }
+                }
             }
         })
-        
-        if (claim !== '') {
-            let cr = this.getResources('ClaimResponse?request=' + claim.id).then((cr)=>{
-                if (cr.hasOwnProperty('entry')) {
-                    claimResponse = cr.entry[0].resource
-                }
-            })
-            
-            this.getReferences(claim, 'Claim').then((ref)=>{
-                ref.map((r) => {
-                    Bundle.entry.push(r)
-                })
-            })
-            
-        }
-        Bundle.entry.push({ resource: this.state.patient })
-        if (this.state.patient.hasOwnProperty('generalPractitioner')) {
-            this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac) => {
-                Bundle.entry.push({ resource: prac })
-            })
-        }
-        console.log('1234', claim, claimResponse, 'conditionsArray')
+
+
+        this.setState({ activeClaims })
+        this.setState({ supportingClaims })
+        this.setState({ activeCoverageIds })
+        // console.log("here",activeClaims,activeCoverageIds)
+        // activeClaims.map((claim)=>{
+
+        // })
+
+
+        // if (claim.length>0) {
+
+        //     let cr = this.getResources('ClaimResponse?request=' + claim.id).then((cr)=>{
+        //         if (cr.hasOwnProperty('entry')) {
+        //             claimResponse = cr.entry[0].resource
+        //         }
+        //     })
+
+        //     this.getReferences(claim, 'Claim').then((ref)=>{
+        //         ref.map((r) => {
+        //             Bundle.entry.push(r)
+        //         })
+        //     })
+
+        // }
+        // Bundle.entry.push({ resource: this.state.patient })
+        // if (this.state.patient.hasOwnProperty('generalPractitioner')) {
+        //     this.getResources(this.state.patient.generalPractitioner[0].reference).then((prac) => {
+        //         Bundle.entry.push({ resource: prac })
+        //     })
+        // }
+        // console.log('1234', claim, claimResponse, 'conditionsArray')
         // compositionJson.section.push(
         //     {
         //         "code": {
@@ -962,7 +1481,7 @@ class Task extends Component {
         //     this.getResources(resource).then((conditionResource)=>{
         //         Bundle.entry.push({ resource: conditionResource })
         //     })
-            
+
         // })
         // Bundle.entry.push({ resource: claim })
         // Bundle.entry.push({ resource: claimResponse })
@@ -1039,15 +1558,166 @@ class Task extends Component {
         this.setState({ bundle: Bundle })
     }
 
-    async submit_info() {
-        let carePlanResources = this.state.selectedPlans
-        carePlanResources.map((carePlan, k) => {
-            this.getCarePlanInfo(carePlan)
+    async getClaimResponse(claim, type) {
+        let activeClaimResponses = this.state.activeClaimResponses
+        let supportingClaimResponses = this.state.supportingClaimResponses
+        if (claim.hasOwnProperty('id')) {
+            let cr = this.getResources('ClaimResponse?request=' + claim.id).then((claimResponse) => {
+                if (claimResponse.hasOwnProperty('entry')) {
+                    if (type === 'active') {
+                        activeClaimResponses.push(claimResponse.entry[0].resource)
+                        this.setState({ activeClaimResponses })
+                    }
+                    else {
+                        supportingClaimResponses.push(claimResponse.entry[0].resource)
+                        this.setState({ supportingClaimResponses })
+                    }
+                }
+            })
+        }
+    }
+
+    buildCompositionJSON(compositionJSON, coverageIds, carePlanResources, activeClaims, activeClaimResponses, supportingClaims, supportingClaimResponses) {
+        let currentPayerIdentifier = this.state.currentPayerIdentifier
+        if (this.state.senderOrganization !== '') {
+            compositionJSON.author.push({
+                "reference": "Organization/" + this.state.senderOrganization.id,
+                "_reference": {
+                    "fhir_comments": [
+                        "Authored by the old payer."
+                    ]
+                }
+            })
+        }
+        // let author = this.getResources('Organization?identifier=' + currentPayerIdentifier).then((bundle) => {
+        //     if (bundle.hasOwnProperty('entry')) {
+        //         if (bundle.entry[0].hasOwnProperty('resource')) {
+        //             compositionJSON.author.push({
+        //                 "reference": "Organization/" + bundle.entry[0].resource.id,
+        //                 "_reference": {
+        //                     "fhir_comments": [
+        //                         "Authored by the old payer."
+        //                     ]
+        //                 }
+        //             })
+        //         }
+        //     }
+        // })
+        if (this.state.patient !== null) {
+            compositionJSON.subject = {
+                "reference": "Patient/" + this.state.patient.id
+            }
+        }
+        // filling out Treatment section
+        if (carePlanResources.length > 0) {
+            let carePlanIds = []
+            carePlanResources.map((careplan) => {
+                if (careplan.hasOwnProperty("id")) {
+                    carePlanIds.push({ 'reference': "CarePlan/" + careplan.id })
+                }
+            })
+            compositionJSON.section.push(
+                {
+                    "code": {
+                        "coding": [
+                            {
+                                "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                                "code": "activeTreatment"
+                            }
+                        ]
+                    },
+                    "section": [
+                        {
+                            "code": {
+                                "coding": [
+                                    {
+                                        "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                                        "code": "treatment"
+                                    }
+                                ]
+                            },
+                            "entry": carePlanIds
+                        },
+
+                    ]
+                }
+            )
+        }
+        //filling out Prior Coverage Section
+        if (activeClaims.length > 0 || activeClaimResponses.length > 0) {
+            let coverageReference = []
+            if (coverageIds.length > 0) {
+                coverageIds.map((coverageId) => {
+                    coverageReference.push({ "reference": coverageId })
+                    compositionJSON.event.push({
+                        "detail": [
+                            {
+                                "reference": coverageId,
+                                "_reference": {
+                                    "fhir_comments": [
+                                        "Event driven by patient transitioning coverage plans between old and new payer."
+                                    ]
+                                }
+                            }
+                        ]
+                    })
+                })
+            }
+            let entry = []
+            let claimReference = this.getReferenceIds('Claim', activeClaims)
+            let claimResponseReference = this.getReferenceIds('ClaimResponse', activeClaimResponses)
+            entry = coverageReference.concat(claimReference, claimResponseReference)
+            compositionJSON.section[0].section.push(
+                {
+                    "code": {
+                        "coding": [
+                            {
+                                "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                                "code": "priorCoverage"
+                            }
+                        ]
+                    },
+                    "entry": entry
+                }
+            )
+        }
+        //filling out Supporting Info section
+        if (supportingClaims.length > 0 || supportingClaimResponses.length > 0) {
+            let entry = []
+            let claimReference = this.getReferenceIds('Claim', supportingClaims)
+            let claimResponseReference = this.getReferenceIds('ClaimResponse', supportingClaimResponses)
+            entry = claimReference.concat(claimResponseReference)
+            compositionJSON.section[0].section.push(
+                {
+                    "code": {
+                        "coding": [
+                            {
+                                "system": "http://hl7.org/fhir/us/davinci-pcde/CodeSystem/PCDESectionCode",
+                                "code": "supportingInfo"
+                            }
+                        ]
+                    },
+                    "entry": entry
+                }
+            )
+        }
+
+        return compositionJSON
+
+    }
+    getReferenceIds(resourceType, resources) {
+        let referenceArray = []
+        resources.map((resource) => {
+            referenceArray.push({ "reference": resourceType + '/' + resource.id })
         })
-        let randomString = this.randomString()
+        return referenceArray
+    }
+    async buildDocumentBundle(coverageIds, compositionJSON, patient, carePlanResources, activeClaims, supportingClaims, ) {
         let bundle = this.state.bundle
-        bundle.entry = this.getUnique(bundle.entry)
-        console.log(bundle, 'pppppp')
+        console.log(bundle.entry,'entry')
+        bundle.entry.push({ resource: compositionJSON })
+        bundle.entry.push({ resource: patient })
+        console.log('eeee', bundle)
         let files_arr = []
         if (this.state.files !== null) {
             for (var i = 0; i < this.state.files.length; i++) {
@@ -1082,143 +1752,301 @@ class Task extends Component {
                 "entry": files_arr
             })
         }
-        this.setState({ bundle: bundle })
-        // let comp = await this.createFhirResource(this.state.compositionJson, 'Composition', this.state.fhir_url)
-        console.log(this.state.bundle, 'composition Resource has been Created')
-        this.setState({ loading: true });
-        // let objJsonStr = JSON.stringify(this.state.bundle);
-        // let objJsonB64 = Buffer.from(objJsonStr).toString("base64");
-        // var encoded = btoa(JSON.stringify(dataResult))
-        //             console.log(encoded, 'base64')
-        let encodedJson = btoa(JSON.stringify(this.state.bundle))
-        let fullUrl = this.randomString()
-        let communicationRequest = this.state.communicationRequest;
-        // console.log(this.state.communicationRequest, 'submitted', communicationRequest.sender.reference)
-        // let communicationRequestJson = {};
-        let doc_ref = {};
-        // console.log(this.state.requesterOrganization, this.state.senderOrganization)
-        var date = new Date()
-        var authoredOn = date.toISOString()
-        // console.log(authoredOn,communicationRequest.occurrencePeriod,'timeeee')
-        let communicationPayload = this.state.communicationPayload
-        let payload = [{
-            'extension': this.state.communicationRequest.payload[0].extension,
-            "contentAttachment": {
-                "contentType": "application/fhir+xml",
-                "data": encodedJson
-            }
-        }]
-        this.setState({ communicationPayload: communicationPayload })
-        var commJson = {
-            "resource": {
-                "resourceType": "Communication",
-                "status": "completed",
-                "subject": {
-                    'reference': "Patient/" + this.state.patient.id
-                },
-                "recipient": [
-                    {
-                        "reference": "Organization/" + this.state.requesterOrganization.id
-                    }
-                ],
-                "sender": {
-                    "reference": "Organization/" + this.state.senderOrganization.id
-                },
-                // "occurrencePeriod": communicationRequest.occurrencePeriod,
-                "authoredOn": authoredOn,
-                "category": communicationRequest.category,
-                // "contained": communicationRequest.contained,
-                "basedOn": [
-                    {
-                        'reference': ''
-                    }
-                ],
-                "identifier": [
-                    {
-                        "system": "http://www.providerco.com/communication",
-                        "value": this.state.communicationIdentifier
-                    }
-                ],
-                "payload": payload
-            }
-        }
-        let collectionBundle = this.state.collectionBundle
 
-        if (this.state.communicationRequest.hasOwnProperty('id')) {
+        let coverageResources = await this.getResources('Coverage?_id=' + coverageIds).then((response) => {
+            if (response.hasOwnProperty('entry')) {
+                response.entry.map((entry) => {
+                    bundle.entry.push({ resource: entry.resource })
+                    this.setState({ bundle })
 
-            commJson.resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
-        }
-        else {
-            let id = this.randomString()
-            collectionBundle.entry.map((entry, k) => {
-                if (entry.resource.resourceType === 'CommunicationRequest') {
-                    entry.resource.id = id
-                    if (entry.resource.hasOwnProperty('status')) {
-                        entry.resource.status = 'completed'
-                    }
-                }
-            })
-            commJson.resource.basedOn[0].reference = "CommunicationRequest/" + id
-        }
-        console.log(this.state.patient.id, 'iddd', commJson, this.state.collectionBundle)
-        collectionBundle.entry.push(commJson)
-        // commJson.entry.push({
-        //     "resource": this.state.communicationRequest,
-        //     "request": { "method": "POST", "url": "CommunicationRequest" }
-        // })
+                    this.getReferences(entry.resource, 'Coverage').then((ref) => {
+                        ref.map((r) => {
+                            bundle.entry.push(r)
+                            this.setState({ bundle })
 
-        let headers = {
-            "Content-Type": "application/json",
-        }
-        // const token = await this.getToken(config.payerA.grant_type, config.payerA.client_id, config.payerA.client_secret);
-
-        // if (config.payerA.authorizedPayerFhir) {
-        //     headers['Authorization'] = 'Bearer ' + token
-        // }
-        var communicationUrl = this.state.endpoint.address;
-        console.log("")
-        console.log("Comm request json---", JSON.stringify(collectionBundle));
-        let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/" + communicationUrl + "/Bundle", {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(collectionBundle)
-        }).then(response => {
-            return response.json();
-        }).then((response) => {
-            console.log("----------response123", response);
-            // this.setState({ loading: false });
-            // this.UpdateCommunicationRequest();
-            if (response.hasOwnProperty('id')) {
-                let communicationId = response.id
-                this.UpdateCommunicationRequest(this.state.collectionBundle).then((res) => {
-                    this.setState({ loading: false });
-                    console.log(res, 'Sender Communication has been Created')
+                        })
+                    })
                 })
-
-
-
-                this.setState({ success: true })
-                this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
-                // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
-                return response
             }
-            if (response.hasOwnProperty('issue')) {
+        })
+        if (carePlanResources.length > 0) {
+            this.getReferences(carePlanResources, 'CarePlan').then((ref) => {
+                carePlanResources.map((careplan) => {
+                    bundle.entry.push({ resource: careplan })
+                    this.setState({ bundle })
+
+                })
+                ref.map((r) => {
+                    bundle.entry.push(r)
+                    this.setState({ bundle })
+
+                })
+            })
+        }
+        if (activeClaims.length > 0) {
+            activeClaims.map((claim) => {
+                bundle.entry.push({ resource: claim })
+            })
+            await this.getReferences(activeClaims, 'Claim').then((ref) => {
+                ref.map((r) => {
+                    bundle.entry.push(r)
+                    this.setState({ bundle })
+
+                })
+            })
+        }
+        if (supportingClaims.length > 0) {
+            supportingClaims.map((claim) => {
+                bundle.entry.push({ resource: claim })
+                this.setState({ bundle })
+            })
+            await this.getReferences(supportingClaims, 'Claim').then((ref) => {
+                ref.map((r) => {
+                    bundle.entry.push(r)
+                    this.setState({ bundle })
+
+                })
+            })
+        }
+        console.log('bundle', bundle)
+        return bundle
+
+
+    }
+    async submit_info() {
+
+        let carePlanResources = this.state.selectedPlans
+        carePlanResources.map((carePlan, k) => {
+            this.getCarePlanInfo(carePlan, this.state.claimResources)
+        })
+        let activeClaims = this.getUnique(this.state.activeClaims)
+        let supportingClaims = this.getUnique(this.state.supportingClaims)
+        if (activeClaims.length > 0) {
+            activeClaims.map((activeClaim) => {
+                this.getClaimResponse(activeClaim)
+            })
+        }
+        // let compositionJSON = this.state.compositionJSON
+
+        let coverageReferences = this.getUniqueReferences(this.state.activeCoverageIds)
+        let compositionJSON = this.buildCompositionJSON(this.state.compositionJSON, coverageReferences, carePlanResources, activeClaims, this.state.activeClaimResponses, supportingClaims, this.state.supportingClaimResponses)
+        var coverageIds = ''
+        coverageReferences.map((ref, key) => {
+            if (key !== 0) {
+                coverageIds = coverageIds + ',' + ref.split('/')[1]
+            }
+            else {
+                coverageIds = ref.split('/')[1]
+            }
+        })
+        // let bundle = this.state.bundle
+        console.log(coverageIds, 'coverage ids ')
+        let patient = this.state.patient
+        let arr = await this.buildDocumentBundle(coverageIds, compositionJSON, patient, carePlanResources, activeClaims, supportingClaims).then(async (bundle) => {
+            console.log(compositionJSON, 'compositionJson')
+
+            let randomString = this.randomString()
+            bundle.entry = this.getUnique(bundle.entry)
+            console.log(bundle, 'pppppp')
+
+            this.setState({ bundle: bundle })
+            // let comp = await this.createFhirResource(this.state.compositionJson, 'Composition', this.state.fhir_url)
+            console.log(this.state.bundle, 'composition Resource has been Created')
+            this.setState({ loading: true });
+            // let objJsonStr = JSON.stringify(this.state.bundle);
+            // let objJsonB64 = Buffer.from(objJsonStr).toString("base64");
+            // var encoded = btoa(JSON.stringify(dataResult))
+            //             console.log(encoded, 'base64')
+            let encodedJson = btoa(JSON.stringify(this.state.bundle))
+            let fullUrl = this.randomString()
+            let communicationRequest = this.state.communicationRequest;
+            // console.log(this.state.communicationRequest, 'submitted', communicationRequest.sender.reference)
+            // let communicationRequestJson = {};
+            let doc_ref = {};
+            // console.log(this.state.requesterOrganization, this.state.senderOrganization)
+            var date = new Date()
+            var authoredOn = date.toISOString()
+            // console.log(authoredOn,communicationRequest.occurrencePeriod,'timeeee')
+            let communicationPayload = this.state.communicationPayload
+            let payload = [{
+                'extension': this.state.communicationRequest.payload[0].extension,
+                "contentAttachment": {
+                    "contentType": "application/fhir+xml",
+                    "data": encodedJson
+                }
+            }]
+            this.setState({ communicationPayload: communicationPayload })
+            var commJson = {
+                "resource": {
+                    "resourceType": "Communication",
+                    "status": "completed",
+                    "subject": {
+                        'reference': "Patient/" + this.state.patient.id
+                    },
+
+
+
+                    // "occurrencePeriod": communicationRequest.occurrencePeriod,
+                    "authoredOn": authoredOn,
+
+
+                    // "contained": communicationRequest.contained,
+                    "basedOn": [
+                        {
+                            'reference': ''
+                        }
+                    ],
+                    "identifier": [
+                        {
+                            "system": "http://www.providerco.com/communication",
+                            "value": this.state.communicationIdentifier
+                        }
+                    ],
+                    "payload": payload
+                }
+            }
+            if (communicationRequest.hasOwnProperty('category')) {
+                commJson.category = communicationRequest.category
+            }
+            console.log(this.state.senderOrganization, 'senderOrg')
+            let sender_orgId = ''
+            if (this.state.senderOrganization !== '') {
+                commJson.resource.sender = {
+                    "reference": "Organization/" + this.state.senderOrganization.id
+                }
+            }
+
+            if (communicationRequest.hasOwnProperty('recipient')) {
+                commJson.resource.recipient = communicationRequest.recipient
+            }
+            let collectionBundle = this.state.collectionBundle
+            let sender_id = ''
+            let requester_id = ''
+            let endpoint = ''
+            if (this.state.communicationRequest.hasOwnProperty('id')) {
+                commJson.resource.basedOn[0].reference = "CommunicationRequest/" + this.state.communicationRequest.id
+                collectionBundle.entry.map((entry, k) => {
+                    if (entry.resource.resourceType === 'CommunicationRequest') {
+                        // entry.resource.id = id
+                        if (entry.resource.hasOwnProperty('status')) {
+                            entry.resource.status = 'completed'
+                        }
+                        if (entry.resource.hasOwnProperty('subject')) {
+                            entry.resource.subject.reference = "Patient/" + this.state.patient.id
+                        }
+                        if (entry.resource.hasOwnProperty('sender')) {
+                            sender_id = entry.resource.sender.reference.split('/')[1]
+
+                            entry.resource.sender.reference = "Organization/" + this.state.senderOrganization.id
+                        }
+
+                        if (entry.resource.hasOwnProperty('requester')) {
+                            requester_id = entry.resource.requester.reference.split('/')[1]
+                        }
+                    }
+                    if (entry.resource.resourceType === "Patient") {
+                        entry.resource = this.state.patient
+                    }
+                    if (entry.resource.resourceType === 'Organization' && entry.resource.id === sender_id) {
+                        console.log('pwwwwww')
+                        entry.resource = this.state.senderOrganization
+                    }
+                    
+                    if (entry.resource.resourceType === 'Organization' && entry.resource.id === requester_id) {
+                        if (entry.resource.hasOwnProperty("endpoint")) {
+                            let endpoint = entry.resource.endpoint
+                            let endpoint_id = endpoint[0].reference.split("/")[1]
+                            console.log("Endpoint id---", entry.resource.endpoint);
+                            let endpoint_resource = this.getResourceFromBundle(collectionBundle, "Endpoint", endpoint_id)
+                            if (endpoint_resource) {
+                                console.log("Endpoint---", endpoint_resource);
+                                this.setState({ "endpoint": endpoint_resource });
+                            }
+                        }
+
+                    }
+                })
+            }
+            else {
+                let id = this.randomString()
+                collectionBundle.entry.map((entry, k) => {
+                    if (entry.resource.resourceType === 'CommunicationRequest') {
+                        entry.resource.id = id
+                        if (entry.resource.hasOwnProperty('status')) {
+                            entry.resource.status = 'completed'
+                        }
+                        if (entry.resource.hasOwnProperty('subject')) {
+                            entry.resource.subject.reference = "Patient/" + this.state.patient.id
+                        }
+                    }
+                    if (entry.resource.resourceType === "Patient") {
+                        entry.resource = this.state.patient
+                    }
+                })
+                commJson.resource.basedOn[0].reference = "CommunicationRequest/" + id
+            }
+            // loop to replace sender organization 
+
+            console.log(this.state.patient.id, 'iddd', commJson, this.state.collectionBundle)
+            collectionBundle.entry.push(commJson)
+            // commJson.entry.push({
+            //     "resource": this.state.communicationRequest,
+            //     "request": { "method": "POST", "url": "CommunicationRequest" }
+            // })
+
+            let headers = {
+                "Content-Type": "application/json",
+            }
+            // const token = await this.getToken(config.payerA.grant_type, config.payerA.client_id, config.payerA.client_secret);
+
+            // if (config.payerA.authorizedPayerFhir) {
+            //     headers['Authorization'] = 'Bearer ' + token
+            // }
+            var communicationUrl = this.state.endpoint.address;
+            console.log("")
+            console.log("Comm request json---", JSON.stringify(collectionBundle));
+            let requesterCommunication = await fetch("https://cors-anywhere.herokuapp.com/" + communicationUrl + "/Bundle", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify(collectionBundle)
+            }).then(response => {
+                return response.json();
+            }).then((response) => {
+                console.log("----------response123", response);
+                // this.setState({ loading: false });
+                // this.UpdateCommunicationRequest();
+                if (response.hasOwnProperty('id')) {
+                    let communicationId = response.id
+                    this.UpdateCommunicationRequest(this.state.collectionBundle).then((res) => {
+                        this.setState({ loading: false });
+                        console.log(res, 'Sender Communication has been Created')
+                    })
+
+
+
+                    this.setState({ success: true })
+                    this.setState({ successMsg: 'Document has been posted  successfully with id - ' + communicationId })
+                    // NotificationManager.success('Communication has been posted to payer successfully.', 'Success');
+                    return response
+                }
+                if (response.hasOwnProperty('issue')) {
+                    this.setState({ loading: false })
+                    this.setState({ error: true });
+                    this.setState({ errorMsg: response.issue[0].diagnostics })
+                }
+                // this.setState({response})
+                console.log(response, 'res')
+            }).catch((reason) => {
+                console.log("No response recieved from the server", reason)
                 this.setState({ loading: false })
                 this.setState({ error: true });
-                this.setState({ errorMsg: response.issue[0].diagnostics })
+                this.setState({ errorMsg: "No response recieved from the server" + reason })
+
             }
-            // this.setState({response})
-            console.log(response, 'res')
-        }).catch((reason) => {
-            console.log("No response recieved from the server", reason)
-            this.setState({ loading: false })
 
-            this.setState({ error: true });
-            this.setState({ errorMsg: "No response recieved from the server!!" + reason })
-        }
-
-        );
-        this.setState({ communicationJson: commJson })
+            );
+            this.setState({ communicationJson: commJson })
+        })
 
     }
     onChangeSearchParameter(event) {
@@ -1535,6 +2363,7 @@ class Task extends Component {
                                             {dateFormat(collectionBundle.meta.lastUpdated, "mm/dd/yyyy")}
                                         </td>
                                         <td>
+                                            completed
                                         </td>
                                     </tr>)
                                 }

@@ -7,7 +7,14 @@ export class Header extends Component {
         super(props);
         this.state = {
         }
+        this.onClickLogout = this.onClickLogout.bind(this);
+
     }
+    onClickLogout() {
+        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('fhir_url');
+        this.props.history.push('/login');
+      }
     render() {
         return (
             <header id="inpageheader">
