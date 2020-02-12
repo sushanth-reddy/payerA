@@ -219,7 +219,6 @@ class Task extends Component {
         this.getOrganization(payer.payer_identifier)
         this.setState({ payerName: payer.payer_name })
         this.getCommunicationRequests('');
-
     }
     showBundlePreview() {
         let show = this.state.show;
@@ -318,7 +317,7 @@ class Task extends Component {
             // console.log("Recieved response", response);
             return response.json();
         }).then((response) => {
-            // console.log("----------response", response);
+            console.log("search:",searchParams,response)
             return response;
         }).catch(reason =>
             console.log("No response recieved from the server", reason)
@@ -592,14 +591,15 @@ class Task extends Component {
         let referenceStrings = this.state.referenceStrings
         // console.log(object, 'objjj')
         if (resourceType === 'Claim') {
-            resources.map((object) => {
+            console.log("In get references Claim")
+            await Promise.all(resources.map(async(object) => {
                 if (object.hasOwnProperty('enterer')) {
                     if (object.enterer.hasOwnProperty('reference')) {
 
                         if (referenceStrings.indexOf(object.enterer.reference) === -1) {
                             referenceStrings.push(object.enterer.reference)
                             this.setState({ referenceStrings })
-                            let enterer = this.getResources(object.enterer.reference).then((enterer) => {
+                            let enterer = await this.getResources(object.enterer.reference).then((enterer) => {
                                 referenceArray.push({ resource: enterer })
                                 this.setState({ referenceArray })
                             })
@@ -612,7 +612,7 @@ class Task extends Component {
 
                         if (referenceStrings.indexOf(object.provider.reference) === -1) {
                             referenceStrings.push(object.provider.reference)
-                            let provider = this.getResources(object.provider.reference).then((provider) => {
+                            let provider = await this.getResources(object.provider.reference).then((provider) => {
                                 referenceArray.push({ resource: provider })
                                 this.setState({ referenceArray })
 
@@ -624,7 +624,7 @@ class Task extends Component {
                     if (object.insurer.hasOwnProperty('reference')) {
                         if (referenceStrings.indexOf(object.insurer.reference) === -1) {
                             referenceStrings.push(object.insurer.reference)
-                            let insurer = this.getResources(object.insurer.reference).then((insurer) => {
+                            let insurer = await this.getResources(object.insurer.reference).then((insurer) => {
                                 referenceArray.push({ resource: insurer })
                                 this.setState({ referenceArray })
 
@@ -633,20 +633,107 @@ class Task extends Component {
                     }
                 }
                 if (object.hasOwnProperty('procedure')) {
-                    object.procedure.map((p) => {
+                    console.log("Procedure:::")
+                    await Promise.all(object.procedure.map(async(p) => {
+
+                        console.log("Procedure--",p)
                         if (p.hasOwnProperty('procedureReference')) {
                             if (p.procedureReference.hasOwnProperty('reference')) {
                                 if (referenceStrings.indexOf(p.procedureReference.reference) === -1) {
                                     referenceStrings.push(p.procedureReference.reference)
-                                    let procedure = this.getResources(p.procedureReference.reference).then((procedure) => {
+                                    await this.getResources(p.procedureReference.reference).then(async(procedure) => {
+                                        console.log("ProcedureOBJ",procedure)
                                         referenceArray.push({ resource: procedure })
                                         this.setState({ referenceArray })
+                                        if(procedure.hasOwnProperty("reasonReference")){
+                                            if(procedure.reasonReference.length >=1){
+                                                if(procedure.reasonReference[0].hasOwnProperty("reference")){
+                                                    var reasonReference = procedure.reasonReference[0].reference
+                                                    referenceStrings.push(reasonReference)
+                                                        console.log("653 reasonReference:",reasonReference)
+                                                        let condition = await this.getResources(reasonReference).then((condition) => {
+                                                            console.log("655 Condition:",condition)
+                                                            referenceArray.push({ resource: condition })
+
+                                                        })
+                                                }
+                                            }
+                                        }
+
 
                                     })
                                 }
                             }
                         }
-                    })
+
+
+                    }))
+            
+                }
+
+                if(object.hasOwnProperty("item")){
+                    console.log("ITEM:",object.item)
+                    await Promise.all(object.item.map(async(item) => {
+                        if (item.hasOwnProperty('encounter')) {
+                            console.log("Enc::",item.encounter)
+                            await Promise.all(item.encounter.map(async(encounter_item)=>{
+                                if(encounter_item.hasOwnProperty("reference")){
+                                    var reference = encounter_item.reference
+                                    if (referenceStrings.indexOf(reference) === -1) {
+                                        referenceStrings.push(reference)
+                                        await this.getResources(reference).then(async(encounter) => {
+                                            console.log("Enc response",encounter)
+                                            // this.getReferences(encounter, 'Encounter').then((arr) => {
+                                            //     // referenceArray.concat(arr)
+                                            //     // this.setState({referenceArray})
+                                            // })
+                                            if (encounter.hasOwnProperty('participant')) {
+                                                if (encounter.participant[0].hasOwnProperty('individual')) {
+                                                    if (referenceStrings.indexOf(encounter.participant[0].individual.reference) === -1) {
+                                                        referenceStrings.push(encounter.participant[0].individual.reference)
+                                                        await this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
+                                                            referenceArray.push({ resource: practitioner })
+                                                            this.setState({ referenceArray })
+
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            if(encounter.hasOwnProperty('serviceProvider')){
+                                                if(encounter.serviceProvider.hasOwnProperty("reference")){
+                                                    var serviceProviderRef = encounter.serviceProvider.reference
+                                                    referenceStrings.push(serviceProviderRef)
+                                                    await this.getResources(serviceProviderRef).then(async(organization) => {
+                                                            referenceArray.push({ resource: organization })
+                                                            this.setState({ referenceArray })
+                                                            if(organization.hasOwnProperty("endpoint")){
+                                                                if(organization.endpoint.length > 0){
+                                                                    if(organization.endpoint[0].hasOwnProperty("reference")){
+                                                                        var endPointRef = organization.endpoint[0].reference
+                                                                        referenceStrings.push(endPointRef)
+                                                                        await this.getResources(endPointRef).then((endpoint) => {
+                                                                            referenceArray.push({ resource: endpoint })
+                                                                            this.setState({ referenceArray })
+
+                                                                        });
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        });
+
+                                                }
+                                                
+                                            }
+                                            referenceArray.push({ resource: encounter })
+                                            this.setState({ referenceArray })
+
+                                        })
+                                    }
+                                }
+                            }))
+                        }
+                    }))
                 }
                 if (object.hasOwnProperty('encounter')) {
                     if (object.encounter.hasOwnProperty('reference')) {
@@ -667,12 +754,12 @@ class Task extends Component {
 
                 }
                 if (object.hasOwnProperty('insurance')) {
-                    object.insurance.map((ins) => {
+                    Promise.all(object.insurance.map(async(ins) => {
                         if (ins.hasOwnProperty('coverage')) {
                             if (ins.coverage.hasOwnProperty('reference')) {
                                 if (referenceStrings.indexOf(ins.coverage.reference) === -1) {
                                     referenceStrings.push(ins.coverage.reference)
-                                    let coverage = this.getResources(ins.coverage.reference).then((coverage) => {
+                                    let coverage =await this.getResources(ins.coverage.reference).then((coverage) => {
                                         referenceArray.push({ resource: coverage })
                                         this.setState({ referenceArray })
 
@@ -681,29 +768,31 @@ class Task extends Component {
                             }
 
                         }
-                    })
+                    }))
 
                 }
                 if (object.hasOwnProperty('prescription')) {
                     if (object.prescription.hasOwnProperty('extension')) {
-                        object.prescription.extension.map((ext) => {
+                        await Promise.all(object.prescription.extension.map(async(ext) => {
                             if (ext.hasOwnProperty('valueReference')) {
                                 if (ext.valueReference.hasOwnProperty('reference')) {
                                     if (referenceStrings.indexOf(ext.valueReference.reference) === -1) {
                                         referenceStrings.push(ext.valueReference.reference)
-                                        let coverage = this.getResources(ext.valueReference.reference).then((serviceRequest) => {
+                                        let coverage = await this.getResources(ext.valueReference.reference).then((serviceRequest) => {
 
                                             if (serviceRequest.hasOwnProperty('performer')) {
-                                                serviceRequest.performer.map((p) => {
+                                                serviceRequest.performer.map(async(p) => {
                                                     if (p.hasOwnProperty('reference')) {
                                                         if (referenceStrings.indexOf(p.reference) === -1) {
                                                             referenceStrings.push(p.reference)
-                                                            let practitionerRole = this.getResources(p.reference).then((practitionerRole) => {
+                                                            let practitionerRole = await this.getResources(p.reference).then(async(practitionerRole) => {
                                                                 if (practitionerRole.hasOwnProperty('practitioner')) {
                                                                     if (practitionerRole.practitioner.hasOwnProperty('reference')) {
                                                                         if (referenceStrings.indexOf(practitionerRole.practitioner.reference) === -1) {
                                                                             referenceStrings.push(practitionerRole.practitioner.reference)
-                                                                            let practitioner = this.getResources(practitionerRole.practitioner.reference).then((practitioner) => {
+                                                                            console.log("739 PractitionerRef:",practitionerRole.practitioner.reference)
+                                                                            let practitioner = await this.getResources(practitionerRole.practitioner.reference).then((practitioner) => {
+                                                                                console.log("740 Practitioner:",practitioner)
                                                                                 referenceArray.push({ resource: practitioner })
                                                                             })
                                                                         }
@@ -724,25 +813,25 @@ class Task extends Component {
                                     }
                                 }
                             }
-                        })
+                        }))
                     }
 
 
                 }
-            })
+            }))
 
         }
         else if (resourceType === "CarePlan") {
-            resources.map((object) => {
+            await Promise.all(resources.map(async(object) => {
                 if (object.hasOwnProperty('encounter')) {
                     if (referenceStrings.indexOf(object.encounter.reference) === -1) {
                         referenceStrings.push(object.encounter.reference)
-                        this.getResources(object.encounter.reference).then((encounter) => {
+                        await this.getResources(object.encounter.reference).then(async(encounter) => {
                             if (encounter.hasOwnProperty('participant')) {
                                 if (encounter.participant[0].hasOwnProperty('individual')) {
                                     if (referenceStrings.indexOf(encounter.participant[0].individual.reference) === -1) {
                                         referenceStrings.push(encounter.participant[0].individual.reference)
-                                        this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
+                                        await this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
                                             referenceArray.push({ resource: practitioner })
                                             this.setState({ referenceArray })
 
@@ -760,7 +849,7 @@ class Task extends Component {
                 if (object.hasOwnProperty('careTeam')) {
                     if (referenceStrings.indexOf(object.careTeam[0].reference) === -1) {
                         referenceStrings.push(object.careTeam[0].reference)
-                        let careTeam = this.getResources(object.careTeam[0].reference).then((careTeam) => {
+                        let careTeam = await this.getResources(object.careTeam[0].reference).then((careTeam) => {
                             referenceArray.push({ resource: careTeam })
                             this.setState({ referenceArray })
 
@@ -769,39 +858,40 @@ class Task extends Component {
                     }
                 }
                 if (object.hasOwnProperty('addresses')) {
-                    object.addresses.map(async (address) => {
+                    await Promise.all(object.addresses.map(async (address) => {
                         if (address.hasOwnProperty('reference')) {
                             if (referenceStrings.indexOf(address.reference) === -1) {
                                 referenceStrings.push(address.reference)
-                                await this.getResources(address.reference).then((condition) => {
-                                    this.getReferences(condition, 'Condition')
+                                await this.getResources(address.reference).then(async(condition) => {
+                                    await this.getReferences(condition, 'Condition')
                                     referenceArray.push({ resource: condition })
                                     this.setState({ referenceArray })
                                 })
                             }
                         }
 
-                    })
+                    }))
                 }
-            })
+            }))
 
         }
         else if (resourceType === 'Coverage') {
             if (resources.hasOwnProperty('payor')) {
-                resources.payor.map((p) => {
+                 await Promise.all(resources.payor.map(async(p) => {
                     if (p.hasOwnProperty('reference')) {
+                        console.log("Payor Reference",p.reference,referenceStrings)
                         if (referenceStrings.indexOf(p.reference) === -1) {
                             referenceStrings.push(p.reference)
-                            this.getResources(p.reference).then((response) => {
+                            await this.getResources(p.reference).then(async(response) => {
                                 referenceArray.push({ resource: response })
                                 if (response.hasOwnProperty('evidence')) {
                                     response.evidence.map((e) => {
                                         if (e.hasOwnProperty('detail')) {
-                                            e.detail.map((d) => {
+                                            e.detail.map(async(d) => {
                                                 if (d.hasOwnProperty('reference')) {
                                                     if (referenceStrings.indexOf(d.reference) === -1) {
                                                         referenceStrings.push(d.reference)
-                                                        this.getResources(d.reference).then((documentReference) => {
+                                                        await this.getResources(d.reference).then((documentReference) => {
                                                             referenceArray.push({ resource: documentReference })
                                                             this.setState({ referenceArray })
                                                         })
@@ -818,14 +908,14 @@ class Task extends Component {
                         }
                     }
 
-                })
+                }))
             }
 
         }
         else if (resourceType === 'Encounter') {
             if (resources.hasOwnProperty('participant')) {
                 if (resources.participant[0].hasOwnProperty('individual')) {
-                    this.getResources(resources.participant[0].individual.reference).then((practitioner) => {
+                    await this.getResources(resources.participant[0].individual.reference).then((practitioner) => {
                         referenceArray.push({ resource: practitioner })
                         this.setState({ referenceArray })
                     });
@@ -834,7 +924,7 @@ class Task extends Component {
         }
         else if (resourceType === 'Condition') {
             if (resources.hasOwnProperty('evidence')) {
-                resources.evidence.map((e) => {
+                 await Promise.all(resources.evidence.map((e) => {
                     if (e.hasOwnProperty('detail')) {
                         e.detail.map((d) => {
                             if (d.hasOwnProperty('reference')) {
@@ -849,9 +939,12 @@ class Task extends Component {
                             }
                         })
                     }
-                })
+                }))
             }
 
+        }
+        else if(resourceType ==="PractitionerRole"){
+            console.log("practitionerRole::",resources)
         }
 
         return referenceArray
@@ -1296,9 +1389,11 @@ class Task extends Component {
 
     }
     getUnique(arr) {
+        console.log("Uniquer Array In",arr.length)
         let new_array = []
         let ids = []
         for (var i = 0; i < arr.length; i++) {
+            console.log("IDSs",arr[i].id,ids)
             if (ids.indexOf(arr[i].id) == -1) {
                 ids.push(arr[i].id)
                 // new_array.push({ 'resource': arr[i].resource })
@@ -1308,6 +1403,23 @@ class Task extends Component {
 
         return new_array;
     }
+     getUniqueResources(arr) {
+        console.log("Uniquer Array In",arr.length)
+        let new_array = []
+        let ids = []
+        for (var i = 0; i < arr.length; i++) {
+            var id = arr[i].resource.id
+            console.log("IDSs",id,ids)
+            if (ids.indexOf(id) == -1) {
+                ids.push(id)
+                // new_array.push({ 'resource': arr[i].resource })
+                new_array.push(arr[i])
+            }
+        }
+
+        return new_array;
+    }
+
     getOrganization(identifier) {
         this.getResources('Organization?identifier=' + identifier).then((bundle) => {
             if (bundle.hasOwnProperty('entry')) {
@@ -1609,6 +1721,7 @@ class Task extends Component {
             }
         }
         // filling out Treatment section
+        console.log("carePlanResources",carePlanResources)
         if (carePlanResources.length > 0) {
             let carePlanIds = []
             carePlanResources.map((careplan) => {
@@ -1716,9 +1829,14 @@ class Task extends Component {
         let bundle = this.state.bundle
         console.log(bundle.entry,'entry')
         bundle.entry.push({ resource: compositionJSON })
+        console.log("1719",JSON.stringify(bundle.entry))
         bundle.entry.push({ resource: patient })
-        console.log('eeee', bundle)
+        bundle.entry.push({resource:this.state.senderOrganization})
+        console.log("1720",JSON.stringify(bundle.entry))
+        console.log('eeee', bundle,JSON.stringify(bundle))
         let files_arr = []
+                console.log('bundleLenght - 1724',bundle.entry.length)
+
         if (this.state.files !== null) {
             for (var i = 0; i < this.state.files.length; i++) {
                 (function (file) {
@@ -1739,6 +1857,8 @@ class Task extends Component {
                 })(this.state.files[i])
             }
         }
+                console.log('bundleLenght - 1744',bundle.entry.length)
+
         if (this.state.files.length > 0) {
             bundle.entry[0].resource.section.push({
                 "code": {
@@ -1752,6 +1872,7 @@ class Task extends Component {
                 "entry": files_arr
             })
         }
+        console.log('bundleLenght - 1757',bundle.entry.length)
 
         let coverageResources = await this.getResources('Coverage?_id=' + coverageIds).then((response) => {
             if (response.hasOwnProperty('entry')) {
@@ -1769,6 +1890,8 @@ class Task extends Component {
                 })
             }
         })
+        console.log('bundleLenght , carePlanResources- 1774',bundle.entry.length,carePlanResources)
+
         if (carePlanResources.length > 0) {
             this.getReferences(carePlanResources, 'CarePlan').then((ref) => {
                 carePlanResources.map((careplan) => {
@@ -1783,11 +1906,14 @@ class Task extends Component {
                 })
             })
         }
+                console.log('bundleLenght - 1788,activeClaims',bundle.entry.length,activeClaims)
+
         if (activeClaims.length > 0) {
             activeClaims.map((claim) => {
                 bundle.entry.push({ resource: claim })
             })
             await this.getReferences(activeClaims, 'Claim').then((ref) => {
+                console.log("GETTING CLAIMSSS 1",)
                 ref.map((r) => {
                     bundle.entry.push(r)
                     this.setState({ bundle })
@@ -1795,12 +1921,14 @@ class Task extends Component {
                 })
             })
         }
+        console.log('bundleLenght - 1800,supportingClaims',bundle.entry.length,supportingClaims)
         if (supportingClaims.length > 0) {
             supportingClaims.map((claim) => {
                 bundle.entry.push({ resource: claim })
                 this.setState({ bundle })
             })
             await this.getReferences(supportingClaims, 'Claim').then((ref) => {
+                console.log("GETTING CLAIMSSS 2")
                 ref.map((r) => {
                     bundle.entry.push(r)
                     this.setState({ bundle })
@@ -1808,7 +1936,7 @@ class Task extends Component {
                 })
             })
         }
-        console.log('bundle', bundle)
+        console.log('Returning bundle', bundle,bundle.entry.length,JSON.stringify(bundle))
         return bundle
 
 
@@ -1844,10 +1972,10 @@ class Task extends Component {
         let patient = this.state.patient
         let arr = await this.buildDocumentBundle(coverageIds, compositionJSON, patient, carePlanResources, activeClaims, supportingClaims).then(async (bundle) => {
             console.log(compositionJSON, 'compositionJson')
-
+            console.log("retrieved bundle:",bundle,JSON.stringify(bundle))
             let randomString = this.randomString()
-            bundle.entry = this.getUnique(bundle.entry)
-            console.log(bundle, 'pppppp')
+            bundle.entry = this.getUniqueResources(bundle.entry)
+            console.log("unique bundle",bundle,JSON.stringify(bundle))
 
             this.setState({ bundle: bundle })
             // let comp = await this.createFhirResource(this.state.compositionJson, 'Composition', this.state.fhir_url)
