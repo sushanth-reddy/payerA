@@ -648,14 +648,18 @@ class Task extends Component {
                                         if(procedure.hasOwnProperty("reasonReference")){
                                             if(procedure.reasonReference.length >=1){
                                                 if(procedure.reasonReference[0].hasOwnProperty("reference")){
-                                                    var reasonReference = procedure.reasonReference[0].reference
-                                                    referenceStrings.push(reasonReference)
-                                                        console.log("653 reasonReference:",reasonReference)
-                                                        let condition = await this.getResources(reasonReference).then((condition) => {
-                                                            console.log("655 Condition:",condition)
-                                                            referenceArray.push({ resource: condition })
+                                                    await Promise.all(procedure.reasonReference.map(async(reasonReferenceObj)=>{
+                                                        if(reasonReferenceObj.hasOwnProperty("reference")){
+                                                            var reasonReference = reasonReferenceObj.reference
+                                                            referenceStrings.push(reasonReference)
+                                                            console.log("653 reasonReference:",reasonReference)
+                                                            let condition = await this.getResources(reasonReference).then((condition) => {
+                                                                console.log("655 Condition:",condition)
+                                                                referenceArray.push({ resource: condition })
 
-                                                        })
+                                                            })
+                                                        }
+                                                    }))
                                                 }
                                             }
                                         }
@@ -688,16 +692,19 @@ class Task extends Component {
                                             //     // this.setState({referenceArray})
                                             // })
                                             if (encounter.hasOwnProperty('participant')) {
-                                                if (encounter.participant[0].hasOwnProperty('individual')) {
-                                                    if (referenceStrings.indexOf(encounter.participant[0].individual.reference) === -1) {
-                                                        referenceStrings.push(encounter.participant[0].individual.reference)
-                                                        await this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
-                                                            referenceArray.push({ resource: practitioner })
-                                                            this.setState({ referenceArray })
+                                                await Promise.all(encounter.participant.map(async(participantObj)=>{
+                                                    if (participantObj.hasOwnProperty('individual')) {
+                                                        if (referenceStrings.indexOf(participantObj.individual.reference) === -1) {
+                                                            referenceStrings.push(participantObj.individual.reference)
+                                                            await this.getResources(participantObj.individual.reference).then((practitioner) => {
+                                                                referenceArray.push({ resource: practitioner })
+                                                                this.setState({ referenceArray })
 
-                                                        });
+                                                            });
+                                                        }
                                                     }
-                                                }
+                                                }))
+                                               
                                             }
                                             if(encounter.hasOwnProperty('serviceProvider')){
                                                 if(encounter.serviceProvider.hasOwnProperty("reference")){
@@ -828,16 +835,18 @@ class Task extends Component {
                         referenceStrings.push(object.encounter.reference)
                         await this.getResources(object.encounter.reference).then(async(encounter) => {
                             if (encounter.hasOwnProperty('participant')) {
-                                if (encounter.participant[0].hasOwnProperty('individual')) {
-                                    if (referenceStrings.indexOf(encounter.participant[0].individual.reference) === -1) {
-                                        referenceStrings.push(encounter.participant[0].individual.reference)
-                                        await this.getResources(encounter.participant[0].individual.reference).then((practitioner) => {
-                                            referenceArray.push({ resource: practitioner })
-                                            this.setState({ referenceArray })
+                                await Promise.all(encounter.participant.map(async(participantObj)=>{
+                                    if (participantObj.hasOwnProperty('individual')) {
+                                        if (referenceStrings.indexOf(participantObj.individual.reference) === -1) {
+                                            referenceStrings.push(participantObj.individual.reference)
+                                            await this.getResources(participantObj.individual.reference).then((practitioner) => {
+                                                referenceArray.push({ resource: practitioner })
+                                                this.setState({ referenceArray })
 
-                                        });
+                                            });
+                                        }
                                     }
-                                }
+                                }))
                             }
                             referenceArray.push({ resource: encounter })
                             this.setState({ referenceArray })
